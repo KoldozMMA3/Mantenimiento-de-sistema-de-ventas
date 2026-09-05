@@ -16,7 +16,16 @@ public class VentasPage extends javax.swing.JFrame {
         initComponents();
         setLocationRelativeTo(null);
         setResizable(false);
-        //setIconImage(new javax.swing.ImageIcon(getClass().getResource("/images/gg.png")).getImage());
+
+        // Bloquear letras en Cantidad (Permite decimales para los Kilos)
+        txtCantidad.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyTyped(java.awt.event.KeyEvent evt) {
+                char c = evt.getKeyChar();
+                if (!Character.isDigit(c) && c != '.' && c != ',') {
+                    evt.consume();
+                }
+            }
+        });
     }
 
     private void agregarProducto(){

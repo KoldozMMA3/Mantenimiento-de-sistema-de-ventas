@@ -203,7 +203,28 @@ public class AgregarProductoPage extends javax.swing.JFrame {
         setLocationRelativeTo(null);
         setResizable(false);
         cargarCategoria();
-        //setIconImage(new javax.swing.ImageIcon(getClass().getResource("/images/gg.png")).getImage());
+
+        // Bloquear letras en Precio (Solo números enteros)
+        txtPrecioVenta.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyTyped(java.awt.event.KeyEvent evt) {
+                char c = evt.getKeyChar();
+                if (!Character.isDigit(c)) {
+                    evt.consume(); // Destruye la tecla si no es número
+                }
+            }
+        });
+
+        // Bloquear letras en Stock (Permite números, puntos y comas)
+        java.awt.event.KeyAdapter validadorDecimal = new java.awt.event.KeyAdapter() {
+            public void keyTyped(java.awt.event.KeyEvent evt) {
+                char c = evt.getKeyChar();
+                if (!Character.isDigit(c) && c != '.' && c != ',') {
+                    evt.consume();
+                }
+            }
+        };
+        txtStockActual.addKeyListener(validadorDecimal);
+        txtStockMinimo.addKeyListener(validadorDecimal);
     }
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents

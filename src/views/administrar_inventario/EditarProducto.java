@@ -82,6 +82,26 @@ public class EditarProducto extends javax.swing.JFrame {
         } catch (NumberFormatException e) {
             stockOriginal = 0.0;
         }
+        
+        txtPrecio.addKeyListener(new java.awt.event.KeyAdapter() {
+        public void keyTyped(java.awt.event.KeyEvent evt) {
+            if (!Character.isDigit(evt.getKeyChar())) {
+                evt.consume();
+            }
+        }
+    });
+
+    java.awt.event.KeyAdapter validadorDecimal = new java.awt.event.KeyAdapter() {
+        public void keyTyped(java.awt.event.KeyEvent evt) {
+            char c = evt.getKeyChar();
+            if (!Character.isDigit(c) && c != '.' && c != ',') {
+                evt.consume();
+            }
+        }
+    };
+    txtStockActual.addKeyListener(validadorDecimal);
+    txtStockMinimo.addKeyListener(validadorDecimal);
+        
     }
     private void cargarCombo() {
 
