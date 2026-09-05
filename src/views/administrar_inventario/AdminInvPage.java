@@ -160,21 +160,25 @@ public class AdminInvPage extends javax.swing.JFrame {
 
             if (confirm != JOptionPane.YES_OPTION) return;
 
-            String sql = "DELETE FROM Producto WHERE cod_producto = ?";
+            String sqlHijos1 = "DELETE FROM detalle_venta WHERE cod_producto = ?";
+            String sqlHijos2 = "DELETE FROM detalle_compra WHERE cod_producto = ?";
+            String sqlHijos3 = "DELETE FROM ajuste_inventario WHERE cod_producto = ?";
+            String sqlPadre = "DELETE FROM Producto WHERE cod_producto = ?";
 
-            try (Connection conn = ConexionDB.getConexion();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
+            try (Connection conn = ConexionDB.getConexion()) {
+                try(PreparedStatement ps1 = conn.prepareStatement(sqlHijos1)){ ps1.setString(1, productoSeleccionado); ps1.executeUpdate(); }
+                try(PreparedStatement ps2 = conn.prepareStatement(sqlHijos2)){ ps2.setString(1, productoSeleccionado); ps2.executeUpdate(); }
+                try(PreparedStatement ps3 = conn.prepareStatement(sqlHijos3)){ ps3.setString(1, productoSeleccionado); ps3.executeUpdate(); }
 
-                ps.setString(1, productoSeleccionado);
-                ps.executeUpdate();
-
+                try(PreparedStatement ps4 = conn.prepareStatement(sqlPadre)){ 
+                    ps4.setString(1, productoSeleccionado); 
+                    ps4.executeUpdate(); 
+                }
                 JOptionPane.showMessageDialog(this, "Producto eliminado correctamente.");
                 productoSeleccionado = null;
-
                 cargarProductos();
-
             } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Error al eliminar: " + e.getMessage());
+                JOptionPane.showMessageDialog(this, "Error al eliminar: Verifica la base de datos.");
             }
         }
     
