@@ -394,33 +394,26 @@ public class AdminInvPage extends javax.swing.JFrame {
     }//GEN-LAST:event_cmdSalirActionPerformed
 
     private void cmdEditarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdEditarActionPerformed
-     int fila = tblCompra.getSelectedRow();
+        int fila = tblCompra.getSelectedRow();
+            if (fila == -1) {
+                JOptionPane.showMessageDialog(this, "Debe seleccionar un producto de la lista haciendo clic sobre él primero.", "Aviso", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            try {
+                String cod = tblCompra.getValueAt(fila, 0).toString();
+                String nombre = tblCompra.getValueAt(fila, 1).toString();
+                double precio = Double.parseDouble(tblCompra.getValueAt(fila, 2).toString());
+                String unidad = tblCompra.getValueAt(fila, 3).toString();
+                double stockAct = Double.parseDouble(tblCompra.getValueAt(fila, 4).toString());
+                double stockMin = Double.parseDouble(tblCompra.getValueAt(fila, 5).toString());
+                String categoria = tblCompra.getValueAt(fila, 6).toString();
 
-    if (fila == -1) {
-        JOptionPane.showMessageDialog(this, "Selecciona un producto primero");
-        return;
-    }
-
-    String cod = tblCompra.getValueAt(fila, 0).toString();
-    String nombre = tblCompra.getValueAt(fila, 1).toString();
-    double precio = Double.parseDouble(tblCompra.getValueAt(fila, 2).toString());
-    String unidad = tblCompra.getValueAt(fila, 3).toString();
-    double stockAct = Double.parseDouble(tblCompra.getValueAt(fila, 4).toString());
-    double stockMin = Double.parseDouble(tblCompra.getValueAt(fila, 5).toString());
-    String categoria = tblCompra.getValueAt(fila, 6).toString();
-
-    EditarProducto editar = new EditarProducto(
-        cod,
-        nombre,
-        String.valueOf(precio),
-        unidad,
-        String.valueOf(stockAct),
-        String.valueOf(stockMin),
-        String.valueOf(categoria)
-    );
-
-    editar.setVisible(true);
-    this.dispose();
+                EditarProducto editar = new EditarProducto(cod, nombre, String.valueOf(precio), unidad, String.valueOf(stockAct), String.valueOf(stockMin), categoria);
+                editar.setVisible(true);
+                this.dispose();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Fila corrupta. No se puede editar este producto.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
     }//GEN-LAST:event_cmdEditarActionPerformed
 
     private void cmdEliminarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdEliminarActionPerformed
@@ -428,21 +421,33 @@ public class AdminInvPage extends javax.swing.JFrame {
     }//GEN-LAST:event_cmdEliminarActionPerformed
 
     private void cmdAgregarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdAgregarActionPerformed
-        AgregarProductoPage agregarProductoPage = new AgregarProductoPage();
-        agregarProductoPage.setVisible(true);
-        this.dispose();
+        try {
+                AgregarProductoPage agregarProductoPage = new AgregarProductoPage();
+                agregarProductoPage.setVisible(true);
+                this.dispose();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error al abrir la pantalla de Agregar Producto.", "Error de Navegación", JOptionPane.ERROR_MESSAGE);
+            }
     }//GEN-LAST:event_cmdAgregarActionPerformed
 
     private void cmdHistorialActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdHistorialActionPerformed
-        HistorialStockPage historialStockPage = new HistorialStockPage();
-        historialStockPage.setVisible(true);
-        this.dispose();
+        try {
+                HistorialStockPage historialStockPage = new HistorialStockPage();
+                historialStockPage.setVisible(true);
+                this.dispose();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error al abrir el Historial.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
     }//GEN-LAST:event_cmdHistorialActionPerformed
 
     private void cmdCategoriasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdCategoriasActionPerformed
-        AdministrarCategoriasPage administrarCategoriasPage = new AdministrarCategoriasPage();
-        administrarCategoriasPage.setVisible(true);
-        this.dispose();
+        try {
+                AdministrarCategoriasPage administrarCategoriasPage = new AdministrarCategoriasPage();
+                administrarCategoriasPage.setVisible(true);
+                this.dispose();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error al abrir la pantalla de Categorías.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
     }//GEN-LAST:event_cmdCategoriasActionPerformed
 
     /**
