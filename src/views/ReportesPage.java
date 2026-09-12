@@ -21,12 +21,15 @@ public class ReportesPage extends javax.swing.JFrame {
      * Creates new form ReportesPage
      */
     public ReportesPage() {
-        initComponents();
-        setLocationRelativeTo(null);
-        setResizable(false);
-        cargarTodo(); 
-        //setIconImage(new javax.swing.ImageIcon(getClass().getResource("/images/gg.png")).getImage());
-    }
+            initComponents();
+            setLocationRelativeTo(null);
+            setResizable(false);
+            cargarTodo();
+
+            // R02: Aplicar diseño moderno a los calendarios
+            aplicarEstiloModerno(jdcInicio);
+            aplicarEstiloModerno(jdcFin);
+        }
    
     private void cargarTodo() {
         String inicio = "0000-01-01"; // fecha mínima
@@ -36,6 +39,8 @@ public class ReportesPage extends javax.swing.JFrame {
         cargarVentas(inicio, fin);
         cargarGanancias();
     }
+    
+    
     
     
     private int cargarCompras(String inicio, String fin) {
@@ -426,7 +431,29 @@ public class ReportesPage extends javax.swing.JFrame {
         cargarCompras(fechaInicio, fechaFin);
         cargarGanancias();
     }//GEN-LAST:event_cmdBuscarActionPerformed
+    private void aplicarEstiloModerno(com.toedter.calendar.JDateChooser jdc) {
+            // 1. Estilo del campo de texto (limpio, fondo blanco y borde sutil)
+            com.toedter.calendar.JTextFieldDateEditor editor = (com.toedter.calendar.JTextFieldDateEditor) jdc.getDateEditor();
+            editor.setEditable(false);
+            editor.setBackground(new java.awt.Color(255, 255, 255));
+            editor.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200)),
+                javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5)
+            ));
 
+            // 2. Estilo del botón (quitar el aspecto 3D antiguo y poner color celeste)
+            javax.swing.JButton boton = jdc.getCalendarButton();
+            boton.setBackground(new java.awt.Color(168, 197, 227)); 
+            boton.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10)); // Botón plano
+            boton.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR)); // Manito al pasar el mouse
+            boton.setFocusPainted(false);
+
+            // 3. Estilo del panel interior del calendario emergente
+            com.toedter.calendar.JCalendar calendario = jdc.getJCalendar();
+            calendario.setBackground(java.awt.Color.WHITE);
+            calendario.setDecorationBackgroundColor(new java.awt.Color(237, 237, 237));
+            calendario.setDecorationBordersVisible(false); // Quitar marcos viejos
+        }
     private void cmdVolverReportesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdVolverReportesActionPerformed
         InicioPage inicioPage = new InicioPage();
         inicioPage.setVisible(true);
