@@ -21,16 +21,22 @@ public class AdminInvPage extends javax.swing.JFrame {
         private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(AdminInvPage.class.getName());
 
         public AdminInvPage() {
-            initComponents();
-            setLocationRelativeTo(null);
-            setResizable(false);
-            txtBuscar.addActionListener(e -> cmdBuscar.doClick());
-            //setIconImage(new javax.swing.ImageIcon(getClass().getResource("/images/gg.png")).getImage());
-            cargarProductos();
-            StockRenderer renderer = new StockRenderer(4, 5); // col 4 = stock actual, col 5 = stock mínimo
-            tblCompra.setDefaultRenderer(Object.class, renderer);
-            seleccionarProductoTabla();
-        }
+                initComponents();
+                setLocationRelativeTo(null);
+                setResizable(false);
+                txtBuscar.addActionListener(e -> cmdBuscar.doClick());
+                //setIconImage(new javax.swing.ImageIcon(getClass().getResource("/images/gg.png")).getImage());
+                cargarProductos();
+                Utils.StockRenderer renderer = new Utils.StockRenderer(4, 5); // col 4 = stock actual, col 5 = stock mínimo
+                tblCompra.setDefaultRenderer(Object.class, renderer);
+                seleccionarProductoTabla();
+
+                // R01: Desactivar botones "Editar" y "Eliminar" por defecto (Gris)
+                cmdEditar.setEnabled(false);
+                cmdEditar.setBackground(new java.awt.Color(211, 211, 211)); 
+                cmdEliminar.setEnabled(false);
+                cmdEliminar.setBackground(new java.awt.Color(211, 211, 211)); 
+            }
 
         private void cargarProductos() {
 
@@ -78,12 +84,18 @@ public class AdminInvPage extends javax.swing.JFrame {
         }
 
         private void seleccionarProductoTabla() {
-            tblCompra.addMouseListener(new MouseAdapter() {
+            tblCompra.addMouseListener(new java.awt.event.MouseAdapter() {
                 @Override
-                public void mouseClicked(MouseEvent e) {
+                public void mouseClicked(java.awt.event.MouseEvent e) {
                     int fila = tblCompra.getSelectedRow();
                     if (fila != -1) {
                         productoSeleccionado = tblCompra.getValueAt(fila, 0).toString();
+
+                        // R01: Activar botones al seleccionar fila (Celeste)
+                        cmdEditar.setEnabled(true);
+                        cmdEditar.setBackground(new java.awt.Color(168, 197, 227)); 
+                        cmdEliminar.setEnabled(true);
+                        cmdEliminar.setBackground(new java.awt.Color(168, 197, 227)); 
                     }
                 }
             });
