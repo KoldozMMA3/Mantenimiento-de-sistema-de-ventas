@@ -15,217 +15,196 @@ import views.InicioPage;
 public class AgregarProductoPage extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(AgregarProductoPage.class.getName());
-    
-    private String normalizarNombreProducto(String nombre) {
-        if (nombre == null) return "";
-        nombre = nombre.trim();
-        nombre = nombre.replaceAll("\\s+", " "); // colapsar espacios dobles
-        if (nombre.isEmpty()) return "";
-        return nombre;
-    }
-    
-    private boolean validarCodigoExiste(String codProducto) {
-        try (Connection conex = ConexionDB.getConexion();
-             PreparedStatement ps = conex.prepareStatement(
-                 "SELECT 1 FROM Producto WHERE UPPER(cod_producto) = ? LIMIT 1")) {
 
-            ps.setString(1, codProducto.toUpperCase(java.util.Locale.ROOT).trim());
+    public AgregarProductoPage() {
+            initComponents();
 
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    JOptionPane.showMessageDialog(this,
-                        "Ya existe un producto con el código " + codProducto + ".");
-                    return false;
-                }
-            }
-            return true;
+            // 1. SOBRESCRIBIR CIERRE: Evita que cerrar esta ventana mate todo el programa
+            setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE); 
 
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error validando código: " + e.getMessage());
-            return false;
-        }
-    }
+            setLocationRelativeTo(null);
+            setResizable(false);
+            cargarCategoria();
 
-
-    private void cargarCategoria() {
-        cmbCategoria.removeAllItems();
-
-        String sql = "SELECT nombre_categoria FROM categoria ORDER BY nombre_categoria";
-
-        try (Connection conex = ConexionDB.getConexion();
-             PreparedStatement ps = conex.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                String nombreCategoria = rs.getString("nombre_categoria");
-                cmbCategoria.addItem(nombreCategoria);
-            }
-
-            if (cmbCategoria.getItemCount() == 0) {
-                JOptionPane.showMessageDialog(this,
-                    "No hay categorías creadas. Debe crear al menos una categoría antes de agregar productos.");
-            }
-
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error al cargar categorías: " + e.getMessage());
-        }
-    }
-
-    
-    private void insertarProducto(){
-        String codProducto = txtCodProducto.getText().toUpperCase().trim();
-        String nombreProducto = normalizarNombreProducto(txtNomProducto.getText());
-        String unidadMedida = String.valueOf(cmbUMedida.getSelectedItem());
-        if (cmbCategoria.getItemCount() == 0 || cmbCategoria.getSelectedIndex() == -1) {
-            JOptionPane.showMessageDialog(this, "Debe seleccionar una categoría válida.");
-            return;
-        }
-        String nombreCategoria = String.valueOf(cmbCategoria.getSelectedItem());
-
-        Integer precioVenta;
-        double stockActual, stockMinimo;
-
-        if (codProducto.isEmpty() || nombreProducto.isEmpty()
-            || unidadMedida == null || unidadMedida.isBlank()
-            || nombreCategoria == null || nombreCategoria.isBlank()) {
-
-            JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios.");
-            return;
-        }
-
-        // siempre entero (CLP sin decimales)
-        try {
-            precioVenta = Integer.valueOf(txtPrecioVenta.getText().trim());
-            if (precioVenta <= 0){
-                JOptionPane.showMessageDialog(this, "El precio de venta debe ser mayor a $0.");
-            return;
-            }
-        } catch (NumberFormatException nfe) {
-            JOptionPane.showMessageDialog(this, "El precio de venta debe ser un número entero.");
-            return;
-        }
-        
-        // permitir decimales solo si la unidad es Kilogramo
-        try {
-            String stockActStr = txtStockActual.getText().trim().replace(',', '.');
-            String stockMinStr = txtStockMinimo.getText().trim().replace(',', '.');
-
-            stockActual = Double.parseDouble(stockActStr);
-            stockMinimo = Double.parseDouble(stockMinStr);
-        } catch (NumberFormatException nfe) {
-            JOptionPane.showMessageDialog(this, "Stock actual y stock mínimo deben ser números válidos.");
-            return;
-        }
-
-        if (precioVenta < 0 || stockActual < 0 || stockMinimo < 0) {
-            JOptionPane.showMessageDialog(this, "Precio/stock no pueden ser negativos.");
-            return;
-        }
-
-        // solo Kilogramo puede tener decimales
-        boolean esKg = unidadMedida.equalsIgnoreCase("Kilogramo");
-        if (!esKg) {
-            boolean stockActEsEntero = (stockActual % 1 == 0);
-            boolean stockMinEsEntero = (stockMinimo % 1 == 0);
-
-            if (!stockActEsEntero || !stockMinEsEntero) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Solo los productos con unidad 'Kilogramo' pueden tener decimales en el stock.\n" +
-                    "Para 'Unidad' o 'Gramo', usa valores enteros.",
-                    "Stock inválido",
-                    JOptionPane.WARNING_MESSAGE
-                );
-                return;
-            }
-        }
-
-        // Validar duplicados en bd (por nombre y codigo)
-        if (!validarCodigoExiste(codProducto)) return;
-        if (!validarSiExiste()) return;
-
-        try (Connection conex = ConexionDB.getConexion()) {
-            conex.setAutoCommit(false);
-            try {
-                Integer idCategoria = null;
-
-                // Obtener id_categoria
-                try (PreparedStatement psCategoria = conex.prepareStatement(
-                         "SELECT id_categoria FROM Categoria WHERE nombre_categoria = ?")) {
-                    psCategoria.setString(1, nombreCategoria);
-                    try (ResultSet rs = psCategoria.executeQuery()) {
-                        if (rs.next()) {
-                            idCategoria = rs.getInt(1);
-                        } else {
-                            JOptionPane.showMessageDialog(this, "Categoría no encontrada.");
-                            conex.rollback();
-                            return;
-                        }
+            // Bloquear letras en Precio (Solo números enteros)
+            txtPrecioVenta.addKeyListener(new java.awt.event.KeyAdapter() {
+                public void keyTyped(java.awt.event.KeyEvent evt) {
+                    char c = evt.getKeyChar();
+                    if (!Character.isDigit(c)) {
+                        evt.consume(); // Destruye la tecla si no es número
                     }
                 }
+            });
 
-                String sqlInsert =
-                    "INSERT INTO Producto " +
-                    "(cod_producto, nombre_producto, precio_unitario_venta, unidad_medida, " +
-                    " stock_actual, stock_minimo, id_categoria) " +
-                    "VALUES (?,?,?,?,?,?,?)";
-
-                try (PreparedStatement ps = conex.prepareStatement(sqlInsert)) {
-                    ps.setString(1, codProducto);
-                    ps.setString(2, nombreProducto);
-                    ps.setInt(3, precioVenta);
-                    ps.setString(4, unidadMedida);
-                    ps.setDouble(5, stockActual);
-                    ps.setDouble(6, stockMinimo);
-                    ps.setInt(7, idCategoria);
-
-                    ps.executeUpdate();
+            // Bloquear letras en Stock (Permite números, puntos y comas)
+            java.awt.event.KeyAdapter validadorDecimal = new java.awt.event.KeyAdapter() {
+                public void keyTyped(java.awt.event.KeyEvent evt) {
+                    char c = evt.getKeyChar();
+                    if (!Character.isDigit(c) && c != '.' && c != ',') {
+                        evt.consume();
+                    }
                 }
-
-                conex.commit();
-                JOptionPane.showMessageDialog(this, "Se agregó el producto.");
-                AdminInvPage adminInvPage = new AdminInvPage();
-                adminInvPage.setVisible(true);
-                this.dispose();
-
-            } catch (SQLException ex) {
-                conex.rollback();
-                throw ex;
-            }
-
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error al agregar el producto: " + e.getMessage());
+            };
+            txtStockActual.addKeyListener(validadorDecimal);
+            txtStockMinimo.addKeyListener(validadorDecimal);
         }
-    }
-  
-    public AgregarProductoPage() {
-        initComponents();
-        setLocationRelativeTo(null);
-        setResizable(false);
-        cargarCategoria();
 
-        // Bloquear letras en Precio (Solo números enteros)
-        txtPrecioVenta.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyTyped(java.awt.event.KeyEvent evt) {
-                char c = evt.getKeyChar();
-                if (!Character.isDigit(c)) {
-                    evt.consume(); // Destruye la tecla si no es número
+        private String normalizarNombreProducto(String nombre) {
+            if (nombre == null) return "";
+            nombre = nombre.trim();
+            nombre = nombre.replaceAll("\\s+", " "); // colapsar espacios dobles
+            if (nombre.isEmpty()) return "";
+            return nombre;
+        }
+
+        private boolean validarCodigoExiste(String codProducto) {
+            try (Connection conex = ConexionDB.getConexion();
+                 PreparedStatement ps = conex.prepareStatement(
+                     "SELECT 1 FROM Producto WHERE UPPER(cod_producto) = ? LIMIT 1")) {
+                ps.setString(1, codProducto.toUpperCase(java.util.Locale.ROOT).trim());
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        JOptionPane.showMessageDialog(this,
+                            "Ya existe un producto con el código " + codProducto + ".");
+                        return false;
+                    }
+                }
+                return true;
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "Error validando código: " + e.getMessage());
+                return false;
+            }
+        }
+
+        private void cargarCategoria() {
+            cmbCategoria.removeAllItems();
+            String sql = "SELECT nombre_categoria FROM categoria ORDER BY nombre_categoria";
+            try (Connection conex = ConexionDB.getConexion();
+                 PreparedStatement ps = conex.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String nombreCategoria = rs.getString("nombre_categoria");
+                    cmbCategoria.addItem(nombreCategoria);
+                }
+                if (cmbCategoria.getItemCount() == 0) {
+                    JOptionPane.showMessageDialog(this,
+                        "No hay categorías creadas. Debe crear al menos una categoría antes de agregar productos.");
+                }
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "Error al cargar categorías: " + e.getMessage());
+            }
+        }
+
+        private void insertarProducto(){
+            String codProducto = txtCodProducto.getText().toUpperCase().trim();
+            String nombreProducto = normalizarNombreProducto(txtNomProducto.getText());
+            String unidadMedida = String.valueOf(cmbUMedida.getSelectedItem());
+            if (cmbCategoria.getItemCount() == 0 || cmbCategoria.getSelectedIndex() == -1) {
+                JOptionPane.showMessageDialog(this, "Debe seleccionar una categoría válida.");
+                return;
+            }
+            String nombreCategoria = String.valueOf(cmbCategoria.getSelectedItem());
+            Integer precioVenta;
+            double stockActual, stockMinimo;
+
+            if (codProducto.isEmpty() || nombreProducto.isEmpty()
+                || unidadMedida == null || unidadMedida.isBlank()
+                || nombreCategoria == null || nombreCategoria.isBlank()) {
+                JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios.");
+                return;
+            }
+
+            try {
+                precioVenta = Integer.valueOf(txtPrecioVenta.getText().trim());
+                if (precioVenta <= 0){
+                    JOptionPane.showMessageDialog(this, "El precio de venta debe ser mayor a $0.");
+                    return;
+                }
+            } catch (NumberFormatException nfe) {
+                JOptionPane.showMessageDialog(this, "El precio de venta debe ser un número entero.");
+                return;
+            }
+
+            try {
+                String stockActStr = txtStockActual.getText().trim().replace(',', '.');
+                String stockMinStr = txtStockMinimo.getText().trim().replace(',', '.');
+                stockActual = Double.parseDouble(stockActStr);
+                stockMinimo = Double.parseDouble(stockMinStr);
+            } catch (NumberFormatException nfe) {
+                JOptionPane.showMessageDialog(this, "Stock actual y stock mínimo deben ser números válidos.");
+                return;
+            }
+
+            if (precioVenta < 0 || stockActual < 0 || stockMinimo < 0) {
+                JOptionPane.showMessageDialog(this, "Precio/stock no pueden ser negativos.");
+                return;
+            }
+
+            boolean esKg = unidadMedida.equalsIgnoreCase("Kilogramo");
+            if (!esKg) {
+                boolean stockActEsEntero = (stockActual % 1 == 0);
+                boolean stockMinEsEntero = (stockMinimo % 1 == 0);
+                if (!stockActEsEntero || !stockMinEsEntero) {
+                    JOptionPane.showMessageDialog(
+                        this,
+                        "Solo los productos con unidad 'Kilogramo' pueden tener decimales en el stock.\n" +
+                        "Para 'Unidad' o 'Gramo', usa valores enteros.",
+                        "Stock inválido",
+                        JOptionPane.WARNING_MESSAGE
+                    );
+                    return;
                 }
             }
-        });
 
-        // Bloquear letras en Stock (Permite números, puntos y comas)
-        java.awt.event.KeyAdapter validadorDecimal = new java.awt.event.KeyAdapter() {
-            public void keyTyped(java.awt.event.KeyEvent evt) {
-                char c = evt.getKeyChar();
-                if (!Character.isDigit(c) && c != '.' && c != ',') {
-                    evt.consume();
+            if (!validarCodigoExiste(codProducto)) return;
+            if (!validarSiExiste()) return;
+
+            try (Connection conex = ConexionDB.getConexion()) {
+                conex.setAutoCommit(false);
+                try {
+                    Integer idCategoria = null;
+                    try (PreparedStatement psCategoria = conex.prepareStatement(
+                             "SELECT id_categoria FROM Categoria WHERE nombre_categoria = ?")) {
+                        psCategoria.setString(1, nombreCategoria);
+                        try (ResultSet rs = psCategoria.executeQuery()) {
+                            if (rs.next()) {
+                                idCategoria = rs.getInt(1);
+                            } else {
+                                JOptionPane.showMessageDialog(this, "Categoría no encontrada.");
+                                conex.rollback();
+                                return;
+                            }
+                        }
+                    }
+                    String sqlInsert =
+                        "INSERT INTO Producto " +
+                        "(cod_producto, nombre_producto, precio_unitario_venta, unidad_medida, " +
+                        " stock_actual, stock_minimo, id_categoria) " +
+                        "VALUES (?,?,?,?,?,?,?)";
+                    try (PreparedStatement ps = conex.prepareStatement(sqlInsert)) {
+                        ps.setString(1, codProducto);
+                        ps.setString(2, nombreProducto);
+                        ps.setInt(3, precioVenta);
+                        ps.setString(4, unidadMedida);
+                        ps.setDouble(5, stockActual);
+                        ps.setDouble(6, stockMinimo);
+                        ps.setInt(7, idCategoria);
+                        ps.executeUpdate();
+                    }
+                    conex.commit();
+                    JOptionPane.showMessageDialog(this, "Se agregó el producto.");
+
+                    // CORRECCIÓN 1: Simplemente cerramos la ventana emergente al terminar con éxito
+                    this.dispose();
+
+                } catch (SQLException ex) {
+                    conex.rollback();
+                    throw ex;
                 }
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "Error al agregar el producto: " + e.getMessage());
             }
-        };
-        txtStockActual.addKeyListener(validadorDecimal);
-        txtStockMinimo.addKeyListener(validadorDecimal);
-    }
+     }
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -425,8 +404,7 @@ public class AgregarProductoPage extends javax.swing.JFrame {
     }//GEN-LAST:event_cmdAgregarProductoActionPerformed
 
     private void cmdSalirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdSalirActionPerformed
-        AdminInvPage administrarInvPage = new AdminInvPage();
-        administrarInvPage.setVisible(true);   
+
         this.dispose();
     }//GEN-LAST:event_cmdSalirActionPerformed
 
@@ -434,11 +412,6 @@ public class AgregarProductoPage extends javax.swing.JFrame {
      * @param args the command line arguments
      */
     public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(info.getName())) {
@@ -449,9 +422,6 @@ public class AgregarProductoPage extends javax.swing.JFrame {
         } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
             logger.log(java.util.logging.Level.SEVERE, null, ex);
         }
-        //</editor-fold>
-
-        /* Create and display the form */
         java.awt.EventQueue.invokeLater(() -> new AgregarProductoPage().setVisible(true));
     }
 

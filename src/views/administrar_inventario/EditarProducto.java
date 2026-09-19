@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
 package views.administrar_inventario;
 
 import java.sql.Connection;
@@ -10,35 +6,30 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import javax.swing.JOptionPane;
 import posglagerman.ConexionDB;
-
+import views.InicioPage;
 
 public class EditarProducto extends javax.swing.JFrame {
     private double stockOriginal;
-    
+
     private void cargarCategoria() {
         cmbCategoria.removeAllItems();
         String sql = "SELECT nombre_categoria FROM categoria ORDER BY nombre_categoria";
-
         try (Connection conex = ConexionDB.getConexion();
              PreparedStatement ps = conex.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-
             while (rs.next()) {
                 String nombreCategoria = rs.getString("nombre_categoria");
                 cmbCategoria.addItem(nombreCategoria);
             }
-
             if (cmbCategoria.getItemCount() == 0) {
                 JOptionPane.showMessageDialog(this,
                     "No hay categorías creadas. Debe crear al menos una categoría antes de editar productos.");
             }
-
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error al cargar categorias: " + e.getMessage());
         }
     }
 
-   
     public EditarProducto() {
         initComponents();
         cargarCombo();
@@ -49,21 +40,24 @@ public class EditarProducto extends javax.swing.JFrame {
     // ------------------------------------
     //  CONSTRUCTOR PARA EDITAR PRODUCTO
     // ------------------------------------
-    public EditarProducto(String cod, String nombre, String precio,
-                          String unidad, String stock,
+    public EditarProducto(String cod, String nombre, String precio, 
+                          String unidad, String stock, 
                           String stockMin, String categoria) {
-
         initComponents();
+
+        // 1. SOBRESCRIBIR CIERRE: Evita que cerrar esta ventana mate todo el programa
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+
         cargarCombo();
         cargarCategoria();
         setLocationRelativeTo(null);
         setResizable(false);
-        //setIconImage(new javax.swing.ImageIcon(getClass().getResource("/images/gg.png")).getImage());
 
         txtCodigo.setText(cod);
         txtNombre.setText(nombre);
         txtStockActual.setText(stock);
         txtStockMinimo.setText(stockMin);
+
         try {
             double p = Double.parseDouble(precio.replace(",", "."));
             int pEntero = (int) Math.round(p);
@@ -72,9 +66,9 @@ public class EditarProducto extends javax.swing.JFrame {
             txtPrecio.setText(precio);
         }
 
-
         cmbUnidadMedida.setSelectedItem(unidad);
         cmbCategoria.setSelectedItem(categoria);
+
         // Guardar el stock original
         try {
             stock = stock.replace(',', '.');   // permite , o .
@@ -82,37 +76,34 @@ public class EditarProducto extends javax.swing.JFrame {
         } catch (NumberFormatException e) {
             stockOriginal = 0.0;
         }
-        
+
         txtPrecio.addKeyListener(new java.awt.event.KeyAdapter() {
-        public void keyTyped(java.awt.event.KeyEvent evt) {
-            if (!Character.isDigit(evt.getKeyChar())) {
-                evt.consume();
+            public void keyTyped(java.awt.event.KeyEvent evt) {
+                if (!Character.isDigit(evt.getKeyChar())) {
+                    evt.consume();
+                }
             }
-        }
-    });
+        });
 
-    java.awt.event.KeyAdapter validadorDecimal = new java.awt.event.KeyAdapter() {
-        public void keyTyped(java.awt.event.KeyEvent evt) {
-            char c = evt.getKeyChar();
-            if (!Character.isDigit(c) && c != '.' && c != ',') {
-                evt.consume();
+        java.awt.event.KeyAdapter validadorDecimal = new java.awt.event.KeyAdapter() {
+            public void keyTyped(java.awt.event.KeyEvent evt) {
+                char c = evt.getKeyChar();
+                if (!Character.isDigit(c) && c != '.' && c != ',') {
+                    evt.consume();
+                }
             }
-        }
-    };
-    txtStockActual.addKeyListener(validadorDecimal);
-    txtStockMinimo.addKeyListener(validadorDecimal);
-        
+        };
+        txtStockActual.addKeyListener(validadorDecimal);
+        txtStockMinimo.addKeyListener(validadorDecimal);
     }
-    private void cargarCombo() {
 
+    private void cargarCombo() {
         cmbUnidadMedida.removeAllItems();
         cmbUnidadMedida.addItem("Unidad");
         cmbUnidadMedida.addItem("Gramo");
         cmbUnidadMedida.addItem("Kilogramo");
     }
-    @SuppressWarnings("unchecked")
-    
-    
+
     private String normalizarNombreProducto(String nombre) {
         if (nombre == null) return "";
         nombre = nombre.trim();
@@ -120,21 +111,17 @@ public class EditarProducto extends javax.swing.JFrame {
         if (nombre.isEmpty()) return "";
         return nombre;
     }
-    
+
     private boolean validarSiExiste(String nombre, String codProducto) {
         String nombreUC = nombre.toUpperCase(java.util.Locale.ROOT).trim();
-
         String sql = "SELECT 1 FROM Producto " +
                      "WHERE UPPER(nombre_producto) = ? " +
                      "AND UPPER(cod_producto) <> ? " +   // excluir el propio
                      "LIMIT 1";
-
         try (Connection conex = ConexionDB.getConexion();
              PreparedStatement ps = conex.prepareStatement(sql)) {
-
             ps.setString(1, nombreUC);
             ps.setString(2, codProducto.toUpperCase(java.util.Locale.ROOT).trim());
-
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     JOptionPane.showMessageDialog(this,
@@ -142,14 +129,16 @@ public class EditarProducto extends javax.swing.JFrame {
                     return false;
                 }
             }
-
             return true;
-
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error validando duplicados: " + e.getMessage());
             return false;
         }
     }
+
+    // --- ZONA BLOQUEADA DE NETBEANS (NO TOCAR) ---
+    @SuppressWarnings("unchecked")
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">                          
 
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -407,7 +396,7 @@ public class EditarProducto extends javax.swing.JFrame {
     }//GEN-LAST:event_cmdAgregarProductoActionPerformed
 
     private void cmdEditarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdEditarActionPerformed
-        String codProducto = txtCodigo.getText().trim();
+String codProducto = txtCodigo.getText().trim();
         String nombre = normalizarNombreProducto(txtNombre.getText());
         
         if (codProducto.isEmpty() || nombre.isEmpty()) {
@@ -421,7 +410,6 @@ public class EditarProducto extends javax.swing.JFrame {
                 "Debes seleccionar una unidad de medida.");
             return;
         }
-
         if (cmbCategoria.getItemCount() == 0 || cmbCategoria.getSelectedIndex() == -1) {
             JOptionPane.showMessageDialog(this,
                 "Debes seleccionar una categoría válida.");
@@ -435,13 +423,10 @@ public class EditarProducto extends javax.swing.JFrame {
         try (Connection con = ConexionDB.getConexion()) {
             try {
                 con.setAutoCommit(false);
-
                 int idCategoria;
                 String sqlCat = "SELECT id_categoria FROM categoria WHERE nombre_categoria = ?";
-
                 try (PreparedStatement psCategoria = con.prepareStatement(sqlCat)) {
                     psCategoria.setString(1, nombreCategoria);
-
                     try (ResultSet rs = psCategoria.executeQuery()) {
                         if (!rs.next()) {
                             con.rollback();
@@ -451,10 +436,10 @@ public class EditarProducto extends javax.swing.JFrame {
                         idCategoria = rs.getInt(1);
                     }
                 }
-
+                
                 // Sacar datos del producto desde el formulario
                 String unidadMedida = cmbUnidadMedida.getSelectedItem().toString();
-
+                
                 // Precio
                 int precio;
                 try {
@@ -468,28 +453,25 @@ public class EditarProducto extends javax.swing.JFrame {
                     JOptionPane.showMessageDialog(this, "Precio de venta inválido.");
                     return;
                 }
-
+                
                 // Stock mínimo y actual (permite coma o punto)
                 double stockMinimo;
                 double nuevoStock;
                 try {
                     String stockMinStr = txtStockMinimo.getText().trim().replace(',', '.');
                     String stockActStr = txtStockActual.getText().trim().replace(',', '.');
-
                     stockMinimo = Double.parseDouble(stockMinStr);
                     nuevoStock  = Double.parseDouble(stockActStr);
                 } catch (NumberFormatException ex) {
                     JOptionPane.showMessageDialog(this, "Stock mínimo y stock actual deben ser números válidos.");
                     return;
                 }
-
+                
                 // solo productos en Kilogramo pueden tener decimales
                 boolean esKg = unidadMedida.equalsIgnoreCase("Kilogramo");
-
                 if (!esKg) {
                     boolean stockMinEsEntero = (stockMinimo % 1 == 0);
                     boolean stockActEsEntero = (nuevoStock  % 1 == 0);
-
                     if (!stockMinEsEntero || !stockActEsEntero) {
                         JOptionPane.showMessageDialog(
                             this,
@@ -501,18 +483,17 @@ public class EditarProducto extends javax.swing.JFrame {
                         return;
                     }
                 }
-
+                
                 if (stockMinimo < 0 || nuevoStock < 0) {
                     JOptionPane.showMessageDialog(this, "El stock no puede ser negativo.");
                     return;
                 }
-
+                
                 // 4) Actualizar Producto
                 String sqlUpdate =
                     "UPDATE Producto SET nombre_producto=?, precio_unitario_venta=?, " +
                     "unidad_medida=?, stock_actual=?, stock_minimo=?, id_categoria=? " +
                     "WHERE cod_producto=?";
-
                 try (PreparedStatement ps = con.prepareStatement(sqlUpdate)) {
                     ps.setString(1, nombre);
                     ps.setInt(2, precio);
@@ -523,11 +504,10 @@ public class EditarProducto extends javax.swing.JFrame {
                     ps.setString(7, codProducto);
                     ps.executeUpdate();
                 }
-
+                
                 // Registrar ajuste de stock SOLO si está marcada la opción y realmente cambió
                 if (chkModificarStock.isSelected()) {
                     double diferencia = nuevoStock - stockOriginal;
-
                     if (diferencia != 0) {
                         String motivo = txtMotivoAjuste.getText().trim();
                         if (motivo.isEmpty()) {
@@ -536,12 +516,10 @@ public class EditarProducto extends javax.swing.JFrame {
                                 "Debes ingresar un motivo de ajuste de stock.");
                             return;
                         }
-
                         String sqlAjusteStock =
                             "INSERT INTO ajuste_inventario " +
                             "(cod_producto, cantidad_ajustada, fecha_ajuste, motivo_ajuste) " +
                             "VALUES (?, ?, datetime('now','localtime'), ?)";
-
                         try (PreparedStatement psAjuste = con.prepareStatement(sqlAjusteStock)) {
                             psAjuste.setString(1, codProducto);
                             psAjuste.setDouble(2, diferencia); // puede ser + o -
@@ -550,11 +528,9 @@ public class EditarProducto extends javax.swing.JFrame {
                         }
                     }
                 }
-
                 con.commit();
                 JOptionPane.showMessageDialog(this, "Producto actualizado con éxito.");
-                dispose();
-                new AdminInvPage().setVisible(true);
+                this.dispose();
 
             } catch (Exception eInner) {
                 try { con.rollback(); } catch (SQLException ignore) {}
@@ -567,8 +543,7 @@ public class EditarProducto extends javax.swing.JFrame {
     }//GEN-LAST:event_cmdEditarActionPerformed
 
     private void cmdSalirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdSalirActionPerformed
-        AdminInvPage administrarInvPage = new AdminInvPage();
-        administrarInvPage.setVisible(true);   
+  
         this.dispose();
     }//GEN-LAST:event_cmdSalirActionPerformed
 
@@ -582,7 +557,6 @@ public class EditarProducto extends javax.swing.JFrame {
 
     private void chkModificarStockActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_chkModificarStockActionPerformed
         boolean habilitar = chkModificarStock.isSelected();
-
         txtStockActual.setEditable(habilitar);
         txtStockActual.setEnabled(habilitar);
         txtMotivoAjuste.setEditable(habilitar);
@@ -598,11 +572,6 @@ public class EditarProducto extends javax.swing.JFrame {
      * @param args the command line arguments
      */
     public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(info.getName())) {
@@ -613,9 +582,6 @@ public class EditarProducto extends javax.swing.JFrame {
         } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
             ex.printStackTrace();
         }
-        //</editor-fold>
-
-        /* Create and display the form */
         java.awt.EventQueue.invokeLater(() -> new EditarProducto().setVisible(true));
     }
 

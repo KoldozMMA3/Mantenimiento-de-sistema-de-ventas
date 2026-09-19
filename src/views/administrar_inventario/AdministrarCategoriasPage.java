@@ -412,8 +412,7 @@ public class AdministrarCategoriasPage extends javax.swing.JFrame {
     }//GEN-LAST:event_cmdRenombrarActionPerformed
 
     private void cmdVolverActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdVolverActionPerformed
-        AdminInvPage administrarInvPage = new AdminInvPage();
-        administrarInvPage.setVisible(true);   
+
         this.dispose();
     }//GEN-LAST:event_cmdVolverActionPerformed
 

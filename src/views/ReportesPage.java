@@ -21,15 +21,23 @@ public class ReportesPage extends javax.swing.JFrame {
      * Creates new form ReportesPage
      */
     public ReportesPage() {
-            initComponents();
-            setLocationRelativeTo(null);
-            setResizable(false);
-            cargarTodo();
-
-            // R02: Aplicar diseño moderno a los calendarios
-            aplicarEstiloModerno(jdcInicio);
-            aplicarEstiloModerno(jdcFin);
-        }
+        initComponents();
+        setLocationRelativeTo(null);
+        setResizable(true); // Permitir que la pantalla se pueda agrandar
+        
+        // Ocultar botón Volver (La navegación ahora es por el menú superior)
+        cmdVolverReportes.setVisible(false);
+        
+        // Mejorar la vista de tablas para que rellenen el espacio vacío al estirar la ventana
+        tblCompras.setFillsViewportHeight(true);
+        tblVentas.setFillsViewportHeight(true);
+        
+        cargarTodo();
+        
+        // R02: Aplicar diseño moderno a los calendarios
+        aplicarEstiloModerno(jdcInicio);
+        aplicarEstiloModerno(jdcFin);
+    }
    
     private void cargarTodo() {
         String inicio = "0000-01-01"; // fecha mínima
@@ -165,26 +173,33 @@ public class ReportesPage extends javax.swing.JFrame {
         return totalGeneral;
     }
 
-    private void cargarGanancias() {
-        long totalVentas;
-        long totalCompras;
+private void cargarGanancias() {
+        long totalVentas = 0;
+        long totalCompras = 0;
 
         try {
             totalVentas = Long.parseLong(txtVentasT.getText().trim());
-        } catch (NumberFormatException ignored) {
-            JOptionPane.showMessageDialog(this, "Error al cargar ganancias.", "Error", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        try {
             totalCompras = Long.parseLong(txtComprasT.getText().trim());
         } catch (NumberFormatException ignored) {
-            JOptionPane.showMessageDialog(this, "Error al cargar ganancias.", "Error", JOptionPane.WARNING_MESSAGE);
+            txtTotal.setText("0");
             return;
         }
 
         long ganancias = totalVentas - totalCompras;
         txtTotal.setText(String.valueOf(ganancias));
+        
+        // REQUERIMIENTO EXTRA: Resaltado inteligente de rentabilidad
+        txtTotal.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 16));
+        if (ganancias > 0) {
+            // Verde si hay utilidades
+            txtTotal.setForeground(new java.awt.Color(34, 139, 34)); 
+        } else if (ganancias < 0) {
+            // Rojo si hay pérdidas
+            txtTotal.setForeground(java.awt.Color.RED); 
+        } else {
+            // Negro si es cero
+            txtTotal.setForeground(java.awt.Color.BLACK); 
+        }
     }
 
     @SuppressWarnings("unchecked")
