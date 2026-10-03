@@ -19,30 +19,34 @@ public class AdminInvPage extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(AdminInvPage.class.getName());
 
-public AdminInvPage() {
+    public AdminInvPage() {
         initComponents();
         setLocationRelativeTo(null);
         setResizable(false);
-        txtBuscar.addActionListener(e -> cmdBuscar.doClick());
+        
+        // --- INICIO REQ 04: Búsqueda Reactiva (Live Search) ---
+        // 1. Escuchar cada tecla que el usuario presiona y soltar
+        txtBuscar.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                buscarProducto(); // Filtra la tabla al instante
+            }
+        });
+        
+        // 2. Ocultar el botón "Buscar" porque el sistema ahora es automático
+        cmdBuscar.setVisible(false);
+        // --- FIN REQ 04 ---
 
-        // --- INICIO REQ 03: Filtro de Bajo Stock (CORREGIDO) ---
+        // --- INICIO REQ 03: Filtro de Bajo Stock ---
         javax.swing.JCheckBox chkBajoStock = new javax.swing.JCheckBox("⚠️ Ver bajo stock");
         chkBajoStock.setBackground(new java.awt.Color(250, 250, 250));
         chkBajoStock.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 14));
         chkBajoStock.setForeground(java.awt.Color.RED);
         chkBajoStock.setFocusPainted(false);
-        
-        // ¡LA CLAVE MAGICA! Darle tamaño y posición manual para que el adaptador NO lo ignore
         chkBajoStock.setBounds(10, 10, 200, 30); 
         
         chkBajoStock.addActionListener(e -> {
             modoBajoStock = chkBajoStock.isSelected();
-            // Disparar la búsqueda para aplicar o quitar el filtro al instante
-            if (txtBuscar.getText().trim().isEmpty()) {
-                cargarProductos();
-            } else {
-                buscarProducto();
-            }
+            buscarProducto(); // Reutilizamos buscarProducto para aplicar ambos filtros a la vez
         });
         
         this.getContentPane().add(chkBajoStock); 
@@ -53,7 +57,7 @@ public AdminInvPage() {
         tblCompra.setDefaultRenderer(Object.class, renderer);
         seleccionarProductoTabla();
 
-        // R01: Desactivar botones "Editar" y "Eliminar" por defecto (Gris)
+        // Desactivar botones "Editar" y "Eliminar" por defecto (Gris)
         cmdEditar.setEnabled(false);
         cmdEditar.setBackground(new java.awt.Color(211, 211, 211)); 
         cmdEliminar.setEnabled(false);
