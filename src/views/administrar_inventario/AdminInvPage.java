@@ -1,199 +1,200 @@
 package views.administrar_inventario;
+
 import views.InicioPage;
 import posglagerman.ConexionDB;
 import Utils.StockRenderer;
-
 import java.sql.*;
-
 import javax.swing.*;
-
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.table.DefaultTableModel;
 
 /**
- *
  * @author Usuario
  */
 public class AdminInvPage extends javax.swing.JFrame {
     
-        private String productoSeleccionado = null;
-        private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(AdminInvPage.class.getName());
+    private String productoSeleccionado = null;
+    private boolean modoBajoStock = false; 
+    
+    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(AdminInvPage.class.getName());
 
-        public AdminInvPage() {
-                initComponents();
-                setLocationRelativeTo(null);
-                setResizable(false);
-                txtBuscar.addActionListener(e -> cmdBuscar.doClick());
-                //setIconImage(new javax.swing.ImageIcon(getClass().getResource("/images/gg.png")).getImage());
+public AdminInvPage() {
+        initComponents();
+        setLocationRelativeTo(null);
+        setResizable(false);
+        txtBuscar.addActionListener(e -> cmdBuscar.doClick());
+
+        // --- INICIO REQ 03: Filtro de Bajo Stock (CORREGIDO) ---
+        javax.swing.JCheckBox chkBajoStock = new javax.swing.JCheckBox("⚠️ Ver bajo stock");
+        chkBajoStock.setBackground(new java.awt.Color(250, 250, 250));
+        chkBajoStock.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 14));
+        chkBajoStock.setForeground(java.awt.Color.RED);
+        chkBajoStock.setFocusPainted(false);
+        
+        // ¡LA CLAVE MAGICA! Darle tamaño y posición manual para que el adaptador NO lo ignore
+        chkBajoStock.setBounds(10, 10, 200, 30); 
+        
+        chkBajoStock.addActionListener(e -> {
+            modoBajoStock = chkBajoStock.isSelected();
+            // Disparar la búsqueda para aplicar o quitar el filtro al instante
+            if (txtBuscar.getText().trim().isEmpty()) {
                 cargarProductos();
-                Utils.StockRenderer renderer = new Utils.StockRenderer(4, 5); // col 4 = stock actual, col 5 = stock mínimo
-                tblCompra.setDefaultRenderer(Object.class, renderer);
-                seleccionarProductoTabla();
-
-                // R01: Desactivar botones "Editar" y "Eliminar" por defecto (Gris)
-                cmdEditar.setEnabled(false);
-                cmdEditar.setBackground(new java.awt.Color(211, 211, 211)); 
-                cmdEliminar.setEnabled(false);
-                cmdEliminar.setBackground(new java.awt.Color(211, 211, 211)); 
+            } else {
+                buscarProducto();
             }
+        });
+        
+        this.getContentPane().add(chkBajoStock); 
+        // --- FIN REQ 03 ---
 
-        private void cargarProductos() {
+        cargarProductos();
+        Utils.StockRenderer renderer = new Utils.StockRenderer(4, 5); 
+        tblCompra.setDefaultRenderer(Object.class, renderer);
+        seleccionarProductoTabla();
 
-            DefaultTableModel model = (DefaultTableModel) tblCompra.getModel();
-            model.setRowCount(0);
+        // R01: Desactivar botones "Editar" y "Eliminar" por defecto (Gris)
+        cmdEditar.setEnabled(false);
+        cmdEditar.setBackground(new java.awt.Color(211, 211, 211)); 
+        cmdEliminar.setEnabled(false);
+        cmdEliminar.setBackground(new java.awt.Color(211, 211, 211));
+    }
 
-            String sql =  
-                "SELECT p.cod_producto, " +
-                "p.nombre_producto, " +
-                "COALESCE(c.nombre_categoria, '(Sin categoría)') AS categoria, " + // ← nombre de la categoría
-                "p.unidad_medida, " +
-                "p.precio_unitario_venta, " +
-                "p.stock_actual, " +
-                "p.stock_minimo " +
-                "FROM Producto p " +
-                "LEFT JOIN Categoria c ON c.id_categoria = p.id_categoria " + // JOIN para obtener el nombre de la categoria
-                "ORDER BY p.nombre_producto";
+    private void cargarProductos() {
+        DefaultTableModel model = (DefaultTableModel) tblCompra.getModel();
+        model.setRowCount(0);
+        
+        String sql = 
+            "SELECT p.cod_producto, p.nombre_producto, " +
+            "COALESCE(c.nombre_categoria, '(Sin categoría)') AS categoria, " +
+            "p.unidad_medida, p.precio_unitario_venta, p.stock_actual, p.stock_minimo " +
+            "FROM Producto p " +
+            "LEFT JOIN Categoria c ON c.id_categoria = p.id_categoria ";
+            
+        // R03: Condición SQL dinámica para el filtro de bajo stock
+        if (modoBajoStock) {
+            sql += "WHERE p.stock_actual <= p.stock_minimo ";
+        }
+        
+        sql += "ORDER BY p.nombre_producto";
 
-            try (Connection conn = ConexionDB.getConexion();
-                PreparedStatement ps = conn.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
+        try (Connection conn = ConexionDB.getConexion();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                String cod = rs.getString("cod_producto");
+                String nombre = rs.getString("nombre_producto");
+                int precio = rs.getInt("precio_unitario_venta");
+                String unidad = rs.getString("unidad_medida");
+                double stockAct = rs.getDouble("stock_actual");
+                double stockMin = rs.getDouble("stock_minimo");
+                String categoria = rs.getString("categoria");
+                
+                model.addRow(new Object[]{
+                    cod, nombre, precio, unidad, stockAct, stockMin, categoria
+                });
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al cargar inventario: " + e.getMessage());
+        }
+    }
 
+    private void seleccionarProductoTabla() {
+        tblCompra.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                int fila = tblCompra.getSelectedRow();
+                if (fila != -1) {
+                    productoSeleccionado = tblCompra.getValueAt(fila, 0).toString();
+                    
+                    // R01: Activar botones al seleccionar fila (Celeste)
+                    cmdEditar.setEnabled(true);
+                    cmdEditar.setBackground(new java.awt.Color(168, 197, 227)); 
+                    cmdEliminar.setEnabled(true);
+                    cmdEliminar.setBackground(new java.awt.Color(168, 197, 227));
+                }
+            }
+        });
+    }
+
+    private void buscarProducto() {
+        String busqueda = txtBuscar.getText().trim();
+        DefaultTableModel model = (DefaultTableModel) tblCompra.getModel();
+        model.setRowCount(0);
+        
+        String sql =
+            "SELECT p.cod_producto, p.nombre_producto, p.precio_unitario_venta, " +
+            "p.unidad_medida, p.stock_actual, p.stock_minimo, " +
+            "COALESCE(c.nombre_categoria, '(Sin categoría)') AS categoria " +
+            "FROM Producto p " +
+            "LEFT JOIN Categoria c ON p.id_categoria = c.id_categoria " +
+            "WHERE (p.nombre_producto LIKE ? OR p.cod_producto LIKE ?) ";
+            
+        // R03: Condición SQL combinada con la barra de búsqueda
+        if (modoBajoStock) {
+            sql += "AND p.stock_actual <= p.stock_minimo ";
+        }
+        
+        sql += "ORDER BY p.nombre_producto";
+
+        try (Connection conn = ConexionDB.getConexion();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, "%" + busqueda + "%");
+            ps.setString(2, "%" + busqueda + "%");
+            
+            try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    String cod = rs.getString("cod_producto");
-                    String nombre = rs.getString("nombre_producto");
-                    int precio = rs.getInt("precio_unitario_venta");
-                    String unidad = rs.getString("unidad_medida");
-                    double stockAct = rs.getDouble("stock_actual");
-                    double stockMin = rs.getDouble("stock_minimo");
+                    String cod       = rs.getString("cod_producto");
+                    String nombre    = rs.getString("nombre_producto");
+                    int precio       = rs.getInt("precio_unitario_venta");
+                    String unidad    = rs.getString("unidad_medida");
+                    double stockAct  = rs.getDouble("stock_actual");
+                    double stockMin  = rs.getDouble("stock_minimo");
                     String categoria = rs.getString("categoria");
+                    
                     model.addRow(new Object[]{
-                        cod,
-                        nombre,
-                        precio,
-                        unidad,
-                        stockAct,
-                        stockMin,
-                        categoria
+                        cod, nombre, precio, unidad, stockAct, stockMin, categoria
                     });
                 }
-
-            } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Error al cargar inventario: " + e.getMessage());
             }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al buscar: " + e.getMessage());
         }
+    }
 
-        private void seleccionarProductoTabla() {
-            tblCompra.addMouseListener(new java.awt.event.MouseAdapter() {
-                @Override
-                public void mouseClicked(java.awt.event.MouseEvent e) {
-                    int fila = tblCompra.getSelectedRow();
-                    if (fila != -1) {
-                        productoSeleccionado = tblCompra.getValueAt(fila, 0).toString();
-
-                        // R01: Activar botones al seleccionar fila (Celeste)
-                        cmdEditar.setEnabled(true);
-                        cmdEditar.setBackground(new java.awt.Color(168, 197, 227)); 
-                        cmdEliminar.setEnabled(true);
-                        cmdEliminar.setBackground(new java.awt.Color(168, 197, 227)); 
-                    }
-                }
-            });
+    private void eliminarProducto() {
+        if (productoSeleccionado == null) {
+            JOptionPane.showMessageDialog(this, "Selecciona un producto primero.");
+            return;
         }
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "¿Seguro que deseas eliminar el producto " + productoSeleccionado + "?",
+                "Confirmar eliminación",
+                JOptionPane.YES_NO_OPTION
+        );
+        if (confirm != JOptionPane.YES_OPTION) return;
 
-        private void buscarProducto() {
+        String sqlHijos1 = "DELETE FROM detalle_venta WHERE cod_producto = ?";
+        String sqlHijos2 = "DELETE FROM detalle_compra WHERE cod_producto = ?";
+        String sqlHijos3 = "DELETE FROM ajuste_inventario WHERE cod_producto = ?";
+        String sqlPadre = "DELETE FROM Producto WHERE cod_producto = ?";
 
-            String busqueda = txtBuscar.getText().trim();
-
-            DefaultTableModel model = (DefaultTableModel) tblCompra.getModel();
-            model.setRowCount(0);
-
-            String sql =
-                "SELECT p.cod_producto, " +
-                "p.nombre_producto, " +
-                "p.precio_unitario_venta, " +
-                "p.unidad_medida, " +
-                "p.stock_actual, " +
-                "p.stock_minimo, " +
-                "COALESCE(c.nombre_categoria, '(Sin categoría)') AS categoria " +
-                "FROM Producto p " +
-                "LEFT JOIN Categoria c ON p.id_categoria = c.id_categoria " +
-                "WHERE p.nombre_producto LIKE ? OR p.cod_producto LIKE ? " +
-                "ORDER BY p.nombre_producto";
-
-            try (Connection conn = ConexionDB.getConexion();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
-
-                ps.setString(1, "%" + busqueda + "%");
-                ps.setString(2, "%" + busqueda + "%");
-
-                try (ResultSet rs = ps.executeQuery()) {
-
-                    while (rs.next()) {
-                        String cod       = rs.getString("cod_producto");
-                        String nombre    = rs.getString("nombre_producto");
-                        int precio       = rs.getInt("precio_unitario_venta");
-                        String unidad    = rs.getString("unidad_medida");
-                        double stockAct  = rs.getDouble("stock_actual");
-                        double stockMin  = rs.getDouble("stock_minimo");
-                        String categoria = rs.getString("categoria"); // ← nombre, no id
-
-                        model.addRow(new Object[]{
-                            cod,
-                            nombre,
-                            precio,
-                            unidad,
-                            stockAct,
-                            stockMin,
-                            categoria
-                        });
-                    }
-                }
-
-            } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Error al buscar: " + e.getMessage());
+        try (Connection conn = ConexionDB.getConexion()) {
+            try(PreparedStatement ps1 = conn.prepareStatement(sqlHijos1)){ ps1.setString(1, productoSeleccionado); ps1.executeUpdate(); }
+            try(PreparedStatement ps2 = conn.prepareStatement(sqlHijos2)){ ps2.setString(1, productoSeleccionado); ps2.executeUpdate(); }
+            try(PreparedStatement ps3 = conn.prepareStatement(sqlHijos3)){ ps3.setString(1, productoSeleccionado); ps3.executeUpdate(); }
+            try(PreparedStatement ps4 = conn.prepareStatement(sqlPadre)){ 
+                ps4.setString(1, productoSeleccionado); 
+                ps4.executeUpdate(); 
             }
+            JOptionPane.showMessageDialog(this, "Producto eliminado correctamente.");
+            productoSeleccionado = null;
+            cargarProductos();
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al eliminar: Verifica la base de datos.");
         }
-
-
-        private void eliminarProducto() {
-
-            if (productoSeleccionado == null) {
-                JOptionPane.showMessageDialog(this, "Selecciona un producto primero.");
-                return;
-            }
-
-            int confirm = JOptionPane.showConfirmDialog(
-                    this,
-                    "¿Seguro que deseas eliminar el producto " + productoSeleccionado + "?",
-                    "Confirmar eliminación",
-                    JOptionPane.YES_NO_OPTION
-            );
-
-            if (confirm != JOptionPane.YES_OPTION) return;
-
-            String sqlHijos1 = "DELETE FROM detalle_venta WHERE cod_producto = ?";
-            String sqlHijos2 = "DELETE FROM detalle_compra WHERE cod_producto = ?";
-            String sqlHijos3 = "DELETE FROM ajuste_inventario WHERE cod_producto = ?";
-            String sqlPadre = "DELETE FROM Producto WHERE cod_producto = ?";
-
-            try (Connection conn = ConexionDB.getConexion()) {
-                try(PreparedStatement ps1 = conn.prepareStatement(sqlHijos1)){ ps1.setString(1, productoSeleccionado); ps1.executeUpdate(); }
-                try(PreparedStatement ps2 = conn.prepareStatement(sqlHijos2)){ ps2.setString(1, productoSeleccionado); ps2.executeUpdate(); }
-                try(PreparedStatement ps3 = conn.prepareStatement(sqlHijos3)){ ps3.setString(1, productoSeleccionado); ps3.executeUpdate(); }
-
-                try(PreparedStatement ps4 = conn.prepareStatement(sqlPadre)){ 
-                    ps4.setString(1, productoSeleccionado); 
-                    ps4.executeUpdate(); 
-                }
-                JOptionPane.showMessageDialog(this, "Producto eliminado correctamente.");
-                productoSeleccionado = null;
-                cargarProductos();
-            } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "Error al eliminar: Verifica la base de datos.");
-            }
-        }
-    
+    }
     
 
 
