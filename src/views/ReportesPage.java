@@ -20,34 +20,88 @@ public class ReportesPage extends javax.swing.JFrame {
     /**
      * Creates new form ReportesPage
      */
-    public ReportesPage() {
+public ReportesPage() {
         initComponents();
         setLocationRelativeTo(null);
-        setResizable(true); // Permitir que la pantalla se pueda agrandar
-        
-        // Ocultar botón Volver (La navegación ahora es por el menú superior)
-        cmdVolverReportes.setVisible(false);
-        
-        // Mejorar la vista de tablas para que rellenen el espacio vacío al estirar la ventana
+        setResizable(true); 
+
+        // R02: Transformar el botón "Volver" en un botón de "Exportar a Excel"
+        cmdVolverReportes.setText("📥 Exportar a Excel (CSV)");
+        cmdVolverReportes.setBackground(new java.awt.Color(40, 167, 69)); // Verde tipo Excel
+        cmdVolverReportes.setForeground(java.awt.Color.WHITE);
+        cmdVolverReportes.setVisible(true);
+
+        // Eliminar el comportamiento antiguo de "Volver" de forma dinámica
+        for(java.awt.event.ActionListener al : cmdVolverReportes.getActionListeners()) {
+            cmdVolverReportes.removeActionListener(al);
+        }
+
+        // Agregar la nueva acción de exportar dependiendo de la pestaña activa
+        cmdVolverReportes.addActionListener(e -> {
+            if (jTabbedPane1.getSelectedIndex() == 0) {
+                exportarCSV(tblCompras, "Reporte_Compras");
+            } else {
+                exportarCSV(tblVentas, "Reporte_Ventas");
+            }
+        });
+
         tblCompras.setFillsViewportHeight(true);
         tblVentas.setFillsViewportHeight(true);
-        
+
         cargarTodo();
-        
-        // R02: Aplicar diseño moderno a los calendarios
+
         aplicarEstiloModerno(jdcInicio);
         aplicarEstiloModerno(jdcFin);
     }
-   
+
+    // ---> MÉTODO RECUPERADO QUE FALTABA <---
     private void cargarTodo() {
         String inicio = "0000-01-01"; // fecha mínima
         String fin = "9999-12-31"; // fecha máxima
-
         cargarCompras(inicio, fin);
         cargarVentas(inicio, fin);
         cargarGanancias();
     }
-    
+
+    // Método universal para exportar cualquier JTable a Excel (CSV)
+    private void exportarCSV(javax.swing.JTable tabla, String nombreArchivo) {
+        javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
+        fileChooser.setDialogTitle("Exportar a Excel (CSV)");
+
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyyMMdd_HHmm");
+        fileChooser.setSelectedFile(new java.io.File(nombreArchivo + "_" + sdf.format(new java.util.Date()) + ".csv"));
+
+        if (fileChooser.showSaveDialog(this) == javax.swing.JFileChooser.APPROVE_OPTION) {
+            java.io.File archivoDestino = fileChooser.getSelectedFile();
+            if (!archivoDestino.getName().toLowerCase().endsWith(".csv")) {
+                archivoDestino = new java.io.File(archivoDestino.getAbsolutePath() + ".csv");
+            }
+            try (java.io.PrintWriter pw = new java.io.PrintWriter(new java.io.FileWriter(archivoDestino))) {
+                javax.swing.table.TableModel modelo = tabla.getModel();
+                // Escribir cabeceras
+                for (int i = 0; i < modelo.getColumnCount(); i++) {
+                    pw.print(modelo.getColumnName(i));
+                    if (i < modelo.getColumnCount() - 1) pw.print(",");
+                }
+                pw.println();
+
+                // Escribir datos
+                for (int i = 0; i < modelo.getRowCount(); i++) {
+                    for (int j = 0; j < modelo.getColumnCount(); j++) {
+                        Object valor = modelo.getValueAt(i, j);
+                        // Reemplazar comas por puntos para no romper el formato CSV
+                        pw.print(valor != null ? valor.toString().replace(",", ".") : "");
+                        if (j < modelo.getColumnCount() - 1) pw.print(",");
+                    }
+                    pw.println();
+                }
+                JOptionPane.showMessageDialog(this, "Reporte exportado con éxito a:\n" + archivoDestino.getAbsolutePath());
+            } catch (java.io.IOException e) {
+                JOptionPane.showMessageDialog(this, "Error al exportar: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+   
     
     
     

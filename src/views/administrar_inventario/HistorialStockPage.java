@@ -22,12 +22,58 @@ public class HistorialStockPage extends javax.swing.JFrame {
      * Creates new form HistorialStockPage
      */
     public HistorialStockPage() {
-        initComponents();
-        setLocationRelativeTo(null);
-        setResizable(false);
-        //setIconImage(new javax.swing.ImageIcon(getClass().getResource("/images/gg.png")).getImage());
-        cargarHistorial();
-    }
+            initComponents();
+
+            // Evitar que cerrar esta ventana cierre el sistema
+            setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+            setLocationRelativeTo(null);
+            setResizable(true); 
+
+            // R02: Crear barra de menú superior para exportar a Excel
+            javax.swing.JMenuBar menuBar = new javax.swing.JMenuBar();
+            javax.swing.JMenu menuOpciones = new javax.swing.JMenu("📁 Archivo");
+            javax.swing.JMenuItem itemExportar = new javax.swing.JMenuItem("📥 Exportar Historial a Excel (CSV)");
+
+            itemExportar.addActionListener(e -> exportarCSV(tblHistorial, "Historial_Stock"));
+            menuOpciones.add(itemExportar);
+            menuBar.add(menuOpciones);
+            this.setJMenuBar(menuBar);
+
+            cargarHistorial();
+        }
+
+        private void exportarCSV(javax.swing.JTable tabla, String nombreArchivo) {
+            javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
+            fileChooser.setDialogTitle("Exportar a Excel (CSV)");
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyyMMdd_HHmm");
+            fileChooser.setSelectedFile(new java.io.File(nombreArchivo + "_" + sdf.format(new java.util.Date()) + ".csv"));
+
+            if (fileChooser.showSaveDialog(this) == javax.swing.JFileChooser.APPROVE_OPTION) {
+                java.io.File archivoDestino = fileChooser.getSelectedFile();
+                if (!archivoDestino.getName().toLowerCase().endsWith(".csv")) {
+                    archivoDestino = new java.io.File(archivoDestino.getAbsolutePath() + ".csv");
+                }
+                try (java.io.PrintWriter pw = new java.io.PrintWriter(new java.io.FileWriter(archivoDestino))) {
+                    javax.swing.table.TableModel modelo = tabla.getModel();
+                    for (int i = 0; i < modelo.getColumnCount(); i++) {
+                        pw.print(modelo.getColumnName(i));
+                        if (i < modelo.getColumnCount() - 1) pw.print(",");
+                    }
+                    pw.println();
+                    for (int i = 0; i < modelo.getRowCount(); i++) {
+                        for (int j = 0; j < modelo.getColumnCount(); j++) {
+                            Object valor = modelo.getValueAt(i, j);
+                            pw.print(valor != null ? valor.toString().replace(",", ".") : "");
+                            if (j < modelo.getColumnCount() - 1) pw.print(",");
+                        }
+                        pw.println();
+                    }
+                    JOptionPane.showMessageDialog(this, "Historial exportado con éxito a:\n" + archivoDestino.getAbsolutePath());
+                } catch (java.io.IOException e) {
+                    JOptionPane.showMessageDialog(this, "Error al exportar: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }
     
     private void cargarHistorial() {
         DefaultTableModel model = (DefaultTableModel) tblHistorial.getModel();
