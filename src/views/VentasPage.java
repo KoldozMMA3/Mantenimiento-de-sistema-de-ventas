@@ -4,6 +4,12 @@ import javax.swing.JOptionPane;
 import java.sql.*;
 import javax.swing.table.DefaultTableModel;
 import posglagerman.ConexionDB;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import javax.swing.JFileChooser;
 
 public class VentasPage extends javax.swing.JFrame {
     
@@ -286,8 +292,10 @@ public class VentasPage extends javax.swing.JFrame {
                 }
 
                 conex.commit();
-                JOptionPane.showMessageDialog(this, "Venta registrada. Total: $ " + totalRedondeado);
-
+                
+                // Llamar al método generador de Ticket (R01)
+                generarTicketVenta(totalRedondeado);
+                
                 // Limpiar
                 model.setRowCount(0);
                 txtProducto.setText("");
@@ -318,6 +326,76 @@ public class VentasPage extends javax.swing.JFrame {
             txtTotal.setText("");
             txtProducto.setText("");
             txtCantidad.setText("");
+        }
+        
+    }
+    
+    // REQUERIMIENTO 01: Generación de Comprobante / Ticket de Venta
+    private void generarTicketVenta(long totalPagado) {
+        DefaultTableModel model = (DefaultTableModel) tblVenta.getModel();
+        
+        // 1. Construir el diseño del ticket en formato texto
+        StringBuilder ticket = new StringBuilder();
+        ticket.append("========================================\n");
+        ticket.append("         VERDULERÍA GLAGERMAN         \n");
+        ticket.append("========================================\n");
+        
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+        ticket.append("Fecha: ").append(sdf.format(new Date())).append("\n");
+        ticket.append("Cajero: Administrador\n");
+        ticket.append("----------------------------------------\n");
+        ticket.append(String.format("%-15s %-10s %-10s\n", "Producto", "Cant.", "Subtotal"));
+        ticket.append("----------------------------------------\n");
+        
+        // 2. Extraer los productos de la tabla al ticket
+        for (int i = 0; i < model.getRowCount(); i++) {
+            String prod = model.getValueAt(i, 0).toString();
+            String cant = model.getValueAt(i, 1).toString();
+            String sub = "$" + model.getValueAt(i, 3).toString();
+            
+            // Cortar nombres muy largos para que no deformen el ticket
+            if(prod.length() > 14) prod = prod.substring(0, 14);
+            
+            ticket.append(String.format("%-15s %-10s %-10s\n", prod, cant, sub));
+        }
+        
+        ticket.append("----------------------------------------\n");
+        ticket.append(String.format("%-26s $%d\n", "TOTAL A PAGAR:", totalPagado));
+        ticket.append("========================================\n");
+        ticket.append("   ¡Gracias por su compra en Glagerman!   \n");
+        ticket.append("========================================\n");
+        
+        // 3. Preguntar al usuario si desea guardar el ticket
+        int opc = JOptionPane.showConfirmDialog(this, 
+                "Venta registrada. Total: $" + totalPagado + "\n\n¿Desea guardar el ticket de compra?", 
+                "Venta Exitosa", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
+                
+        if (opc == JOptionPane.YES_OPTION) {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Guardar Ticket de Venta");
+            
+            // Nombre por defecto sugerido
+            SimpleDateFormat sdfFile = new SimpleDateFormat("yyyyMMdd_HHmmss");
+            fileChooser.setSelectedFile(new File("Ticket_Venta_" + sdfFile.format(new Date()) + ".txt"));
+            
+            int seleccion = fileChooser.showSaveDialog(this);
+            if (seleccion == JFileChooser.APPROVE_OPTION) {
+                File archivoDestino = fileChooser.getSelectedFile();
+                // Asegurar extensión .txt
+                if (!archivoDestino.getName().toLowerCase().endsWith(".txt")) {
+                    archivoDestino = new File(archivoDestino.getAbsolutePath() + ".txt");
+                }
+                
+                try (FileWriter fw = new FileWriter(archivoDestino)) {
+                    fw.write(ticket.toString());
+                    JOptionPane.showMessageDialog(this, "Ticket guardado en:\n" + archivoDestino.getAbsolutePath());
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(this, "Error al guardar el ticket: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        } else {
+             // Si elige NO guardar ticket, mostramos el mensaje simple original
+             JOptionPane.showMessageDialog(this, "Venta registrada. Total: $ " + totalPagado);
         }
     }
     
