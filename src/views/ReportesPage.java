@@ -168,53 +168,66 @@ public ReportesPage() {
 
 
     private int cargarVentas(String inicio, String fin) {
-        DefaultTableModel model = (DefaultTableModel) tblVentas.getModel();
-        model.setRowCount(0);
+        // Configurar dinámicamente las columnas de la tabla Ventas para mostrar los datos de pago
+        DefaultTableModel model = new DefaultTableModel(
+            new Object[][]{},
+            new String[]{"Fecha", "Total", "Método Pago", "Monto Pagado", "Vuelto", "DNI", "Celular", "Billetes / Detalle"}
+        ) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        tblVentas.setModel(model);
 
-        String sql = "SELECT fecha_venta, total_venta FROM Venta "
-                   + "WHERE DATE(fecha_venta) BETWEEN DATE(?) AND DATE(?)";
+        String sql = "SELECT fecha_venta, total_venta, " +
+                     "COALESCE(metodo_pago, 'EFECTIVO') AS metodo_pago, " +
+                     "COALESCE(monto_pagado, total_venta) AS monto_pagado, " +
+                     "COALESCE(vuelto, 0) AS vuelto, " +
+                     "COALESCE(dni_cliente, '-') AS dni_cliente, " +
+                     "COALESCE(celular_cliente, '-') AS celular_cliente, " +
+                     "COALESCE(detalle_billetes, '-') AS detalle_billetes " +
+                     "FROM Venta WHERE DATE(fecha_venta) BETWEEN DATE(?) AND DATE(?)";
 
         int totalGeneral = 0;
-
-        Connection conn;
-        try {
-            conn = ConexionDB.getConexion();
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al conectar con la base de datos: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-            txtVentasT.setText("0");
-            return 0;
-        }
-
-        if (conn == null) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al conectar con la base de datos.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-            txtVentasT.setText("0");
-            return 0;
-        }
-
-        try (Connection c = conn;
-             PreparedStatement ps = c.prepareStatement(sql)) {
-
-            ps.setString(1, inicio);
-            ps.setString(2, fin);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String fecha = rs.getString("fecha_venta");
-                    int total = rs.getInt("total_venta");
-
-                    model.addRow(new Object[]{fecha, total});
-                    totalGeneral += total;
-                }
+        try (Connection c = ConexionDB.getConexion()) {
+            if (c == null) {
+                txtVentasT.setText("0");
+                return 0;
+            }
+            // Asegurar que las columnas existan por si se abre Reportes antes de hacer una venta nueva
+            String[] cols = {
+                "ALTER TABLE venta ADD COLUMN metodo_pago TEXT DEFAULT 'EFECTIVO'",
+                "ALTER TABLE venta ADD COLUMN monto_pagado INTEGER DEFAULT 0",
+                "ALTER TABLE venta ADD COLUMN vuelto INTEGER DEFAULT 0",
+                "ALTER TABLE venta ADD COLUMN dni_cliente TEXT DEFAULT '-'",
+                "ALTER TABLE venta ADD COLUMN celular_cliente TEXT DEFAULT '-'",
+                "ALTER TABLE venta ADD COLUMN detalle_billetes TEXT DEFAULT '-'"
+            };
+            for (String alter : cols) {
+                try (Statement st = c.createStatement()) { st.execute(alter); } catch (SQLException ignored) {}
             }
 
-            txtVentasT.setText(String.valueOf(totalGeneral));
+            try (PreparedStatement ps = c.prepareStatement(sql)) {
+                ps.setString(1, inicio);
+                ps.setString(2, fin);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String fecha = rs.getString("fecha_venta");
+                        int total = rs.getInt("total_venta");
+                        String metodo = rs.getString("metodo_pago");
+                        long pagado = rs.getLong("monto_pagado");
+                        long vuelto = rs.getLong("vuelto");
+                        String dni = rs.getString("dni_cliente");
+                        String cel = rs.getString("celular_cliente");
+                        String billetes = rs.getString("detalle_billetes");
 
+                        model.addRow(new Object[]{fecha, total, metodo, pagado, vuelto, dni, cel, billetes});
+                        totalGeneral += total;
+                    }
+                }
+            }
+            txtVentasT.setText(String.valueOf(totalGeneral));
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this,
                     "Error cargando ventas: " + e.getMessage(),
@@ -223,7 +236,6 @@ public ReportesPage() {
             txtVentasT.setText("0");
             return 0;
         }
-
         return totalGeneral;
     }
 

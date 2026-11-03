@@ -5,3 +5,4 @@ base_datos/*.db-shm
 *.db-journal
 /nbproject/private/
 /build/
+/dist/

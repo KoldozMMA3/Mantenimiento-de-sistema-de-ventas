@@ -199,7 +199,7 @@ public class CompraAProveedoresPage extends javax.swing.JFrame {
         setLocationRelativeTo(null);
         setResizable(false);
         cargarProveedores();
-
+        
         // Bloquear letras en Precio de Compra (Solo números enteros)
         txtPrecioCompra.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent evt) {
@@ -208,7 +208,6 @@ public class CompraAProveedoresPage extends javax.swing.JFrame {
                 }
             }
         });
-
         // Bloquear letras en Cantidad
         txtCantProveedor.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent evt) {
@@ -218,6 +217,28 @@ public class CompraAProveedoresPage extends javax.swing.JFrame {
                 }
             }
         });
+
+        // --- INICIO REQ 05: Atajos de Teclado (Hotkeys) ---
+        // 1. Navegación fluida con ENTER
+        txtProductoProveedor.addActionListener(e -> txtCantProveedor.requestFocus());
+        txtCantProveedor.addActionListener(e -> txtPrecioCompra.requestFocus());
+        txtPrecioCompra.addActionListener(e -> {
+            cmdAgregarProductoCompra.doClick();
+            txtProductoProveedor.requestFocus();
+        });
+
+        // 2. Atajos Globales
+        javax.swing.InputMap inputMap = jPanel1.getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW);
+        javax.swing.ActionMap actionMap = jPanel1.getActionMap();
+
+        // Tecla F12 -> Confirmar Compra Global
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F12, 0), "ConfirmarCompra");
+        actionMap.put("ConfirmarCompra", new javax.swing.AbstractAction() {
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                cmdCompra.doClick();
+            }
+        });
+       
     }
 
     /**

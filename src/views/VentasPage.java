@@ -18,11 +18,11 @@ public class VentasPage extends javax.swing.JFrame {
     /**
      * Creates new form Ventas
      */
-    public VentasPage() {
+public VentasPage() {
         initComponents();
         setLocationRelativeTo(null);
         setResizable(false);
-
+        
         // Bloquear letras en Cantidad (Permite decimales para los Kilos)
         txtCantidad.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent evt) {
@@ -32,6 +32,49 @@ public class VentasPage extends javax.swing.JFrame {
                 }
             }
         });
+
+        // --- INICIO REQ 05: Atajos de Teclado (Solución Definitiva) ---
+        
+        // 1. Navegación fluida con ENTER (Bucle de caja)
+        txtProducto.addActionListener(e -> txtCantidad.requestFocus());
+        txtCantidad.addActionListener(e -> {
+            cmdAgregarProducto.doClick(); 
+            txtProducto.requestFocus();   
+        });
+
+        // 2. EL INTERCEPTOR MÁGICO GLOBAL
+        // Captura las teclas antes de que la tabla o los textos las bloqueen
+        java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new java.awt.KeyEventDispatcher() {
+            @Override
+            public boolean dispatchKeyEvent(java.awt.event.KeyEvent e) {
+                // Solo actuamos si la ventana de Ventas está abierta y activa
+                if (VentasPage.this.isActive() && e.getID() == java.awt.event.KeyEvent.KEY_PRESSED) {
+                    
+                    int tecla = e.getKeyCode();
+                    
+                    // Tecla ESCAPE -> Limpiar Tabla (Vaciar carrito)
+                    if (tecla == java.awt.event.KeyEvent.VK_ESCAPE) {
+                        cmdLimpiarTabla.doClick();
+                        e.consume(); // Destruimos el evento
+                        return true;
+                    }
+                    // Tecla SUPRIMIR (Delete) -> Eliminar Fila seleccionada
+                    else if (tecla == java.awt.event.KeyEvent.VK_DELETE) {
+                        cmdEliminarProducto.doClick();
+                        e.consume();
+                        return true;
+                    }
+                    // Tecla F12 (o la tecla '+' del teclado numérico) -> Confirmar Venta
+                    else if (tecla == java.awt.event.KeyEvent.VK_F12 || tecla == java.awt.event.KeyEvent.VK_ADD) {
+                        cmdConfirmarVenta.doClick();
+                        e.consume();
+                        return true;
+                    }
+                }
+                return false;
+            }
+        });
+        // --- FIN REQ 05 ---
     }
 
     private void agregarProducto(){
@@ -177,145 +220,229 @@ public class VentasPage extends javax.swing.JFrame {
         txtCantidad.setText("");
         }
 
-        private void confirmarVenta(){
-            DefaultTableModel model = (DefaultTableModel) tblVenta.getModel();
-        if (model.getRowCount() == 0) {
-            JOptionPane.showMessageDialog(this, "Agrega al menos un producto.");
-            return;
-        }
-
-        // Total en double y se redondea al final
-        double total = 0.0;
-        for (int i = 0; i < model.getRowCount(); i++) {
-            Object v = model.getValueAt(i, 3); // Subtotal
-            if (v != null) {
-                total += Double.parseDouble(v.toString());
+// Verifica y agrega automáticamente las columnas de pago en SQLite si no existen aún
+        private void asegurarColumnasPagoEnBD(Connection conex) {
+            String[] alterQueries = {
+                "ALTER TABLE venta ADD COLUMN metodo_pago TEXT DEFAULT 'EFECTIVO'",
+                "ALTER TABLE venta ADD COLUMN monto_pagado INTEGER DEFAULT 0",
+                "ALTER TABLE venta ADD COLUMN vuelto INTEGER DEFAULT 0",
+                "ALTER TABLE venta ADD COLUMN dni_cliente TEXT DEFAULT '-'",
+                "ALTER TABLE venta ADD COLUMN celular_cliente TEXT DEFAULT '-'",
+                "ALTER TABLE venta ADD COLUMN detalle_billetes TEXT DEFAULT '-'"
+            };
+            for (String sql : alterQueries) {
+                try (Statement st = conex.createStatement()) {
+                    st.execute(sql);
+                } catch (SQLException ignored) {
+                    // Si la columna ya existe en la tabla venta, SQLite la ignora y continúa
+                }
             }
         }
-        long totalRedondeado = Math.round(total); // Chile sin decimales
 
-        try (Connection conex = ConexionDB.getConexion()) {
-            if (conex == null) {
-                JOptionPane.showMessageDialog(this,
-                    "Error al conectar con la base de datos.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
+        private void confirmarVenta() {
+            DefaultTableModel model = (DefaultTableModel) tblVenta.getModel();
+            if (model.getRowCount() == 0) {
+                JOptionPane.showMessageDialog(this, "Agrega al menos un producto.");
                 return;
             }
-            try {
-                conex.setAutoCommit(false);
-
-                int idVenta;
-
-                // insertar en tabla venta
-                try (PreparedStatement psVenta = conex.prepareStatement(
-                        "INSERT INTO venta (total_venta, fecha_venta) VALUES (?, datetime('now','localtime'))",
-                        Statement.RETURN_GENERATED_KEYS)) {
-
-                    psVenta.setLong(1, totalRedondeado);
-                    psVenta.executeUpdate();
-
-                    try (ResultSet rs = psVenta.getGeneratedKeys()) {
-                        if (!rs.next()) {
-                            throw new SQLException("No se obtuvo id venta.");
-                        }
-                        idVenta = rs.getInt(1);
-                    }
+            double total = 0.0;
+            for (int i = 0; i < model.getRowCount(); i++) {
+                Object v = model.getValueAt(i, 3); // Subtotal
+                if (v != null) {
+                    total += Double.parseDouble(v.toString());
                 }
-
-                // Preparar búsquedas, actualización de stock y detalle_venta
-                try (PreparedStatement psBusca = conex.prepareStatement(
-                            "SELECT cod_producto, stock_actual, unidad_medida " +
-                            "FROM Producto WHERE nombre_producto = ?");
-                     PreparedStatement psStock = conex.prepareStatement(
-                            "UPDATE Producto " +
-                            "SET stock_actual = stock_actual - ? " +
-                            "WHERE cod_producto = ? AND stock_actual >= ?");
-                     PreparedStatement psDet = conex.prepareStatement(
-                            "INSERT INTO detalle_venta " +
-                            "(id_venta, cod_producto, cantidad_venta, precio_unitario_venta) " +
-                            "VALUES (?, ?, ?, ?)")) {
-
-                    for (int i = 0; i < model.getRowCount(); i++) {
-                        String nombre = model.getValueAt(i, 0).toString();
-                        double cantidadTabla = Double.parseDouble(model.getValueAt(i, 1).toString());
-                        int precioUnit = Integer.parseInt(model.getValueAt(i, 2).toString());
-
-                        String cod;
-                        double stock;
-                        String unidadMedida;
-
-                        // Buscar producto en BD
-                        psBusca.setString(1, nombre);
-                        try (ResultSet rs = psBusca.executeQuery()) {
-                            if (!rs.next()) {
-                                throw new SQLException("Producto no encontrado: " + nombre);
-                            }
-                            cod = rs.getString("cod_producto");
-                            stock = rs.getDouble("stock_actual");
-                            unidadMedida = rs.getString("unidad_medida");
-                        }
-
-                        boolean esKg = "Kilogramo".equalsIgnoreCase(unidadMedida);
-
-                        // si no es kg, cantidad entera
-                        double cantidadReal = esKg ? cantidadTabla : Math.round(cantidadTabla);
-
-                        if (cantidadReal > stock + 1e-9) {
-                            throw new SQLException(
-                                "Stock insuficiente para " + nombre +
-                                ". Disponible: " + stock
-                            );
-                        }
-
-                        // Descontar stock
-                        psStock.setDouble(1, cantidadReal);
-                        psStock.setString(2, cod);
-                        psStock.setDouble(3, cantidadReal); // condición stock_actual >= cantidadReal
-                        int ok = psStock.executeUpdate();
-                        if (ok == 0) {
-                            throw new SQLException(
-                                "Stock insuficiente para " + nombre +
-                                " al confirmar la venta. Stock actual: " + stock
-                            );
-                        }
-
-                        // Insertar detalle de la venta
-                        psDet.setInt(1, idVenta);
-                        psDet.setString(2, cod);
-                        psDet.setDouble(3, cantidadReal); // campo debe ser REAL en BD
-                        psDet.setInt(4, precioUnit);
-                        psDet.addBatch();
-                    }
-
-                    psDet.executeBatch();
-                }
-
-                conex.commit();
-                
-                // Llamar al método generador de Ticket (R01)
-                generarTicketVenta(totalRedondeado);
-                
-                // Limpiar
-                model.setRowCount(0);
-                txtProducto.setText("");
-                txtCantidad.setText("");
-                txtTotal.setText("");
-
-            } catch (SQLException e) {
-                try {
-                    conex.rollback();
-                } catch (SQLException ignore) {}
-                JOptionPane.showMessageDialog(this, "No se pudo registrar la venta: " + e.getMessage());
-            } finally {
-                try {
-                    conex.setAutoCommit(true);
-                } catch (SQLException ignore) {}
             }
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error de conexión al registrar la venta: " + e.getMessage());
+            long totalRedondeado = Math.round(total);
+
+            // --- ABRIR PASARELA DE PAGO ANTES DE GUARDAR EN BD E IMPRIMIR TICKET ---
+            java.awt.Frame parentFrame = (java.awt.Frame) javax.swing.SwingUtilities.getWindowAncestor(this);
+            PasarelaPagoDialog pasarela = new PasarelaPagoDialog(parentFrame, totalRedondeado);
+            pasarela.setVisible(true);
+
+            if (!pasarela.isPagoConfirmado()) {
+                return;
+            }
+            String datosPagoTicket = pasarela.getResumenPagoTicket();
+            // --- FIN PASARELA DE PAGO ---
+
+            try (Connection conex = ConexionDB.getConexion()) {
+                if (conex == null) {
+                    JOptionPane.showMessageDialog(this,
+                        "Error al conectar con la base de datos.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                // Aseguramos que la tabla 'venta' tenga las columnas de la pasarela
+                asegurarColumnasPagoEnBD(conex);
+
+                try {
+                    conex.setAutoCommit(false);
+                    int idVenta;
+                    // Insertar en tabla venta incluyendo todos los datos del método de pago
+                    String sqlInsertVenta = 
+                        "INSERT INTO venta (total_venta, fecha_venta, metodo_pago, monto_pagado, vuelto, dni_cliente, celular_cliente, detalle_billetes) " +
+                        "VALUES (?, datetime('now','localtime'), ?, ?, ?, ?, ?, ?)";
+
+                    try (PreparedStatement psVenta = conex.prepareStatement(sqlInsertVenta, Statement.RETURN_GENERATED_KEYS)) {
+                        psVenta.setLong(1, totalRedondeado);
+                        psVenta.setString(2, pasarela.getMetodoPagoBD());
+                        psVenta.setLong(3, pasarela.getMontoPagadoBD());
+                        psVenta.setLong(4, pasarela.getVueltoBD());
+                        psVenta.setString(5, pasarela.getDniClienteBD());
+                        psVenta.setString(6, pasarela.getCelularClienteBD());
+                        psVenta.setString(7, pasarela.getDetalleBilletesBD());
+                        psVenta.executeUpdate();
+
+                        try (ResultSet rs = psVenta.getGeneratedKeys()) {
+                            if (!rs.next()) {
+                                throw new SQLException("No se obtuvo id venta.");
+                            }
+                            idVenta = rs.getInt(1);
+                        }
+                    }
+
+                    // Preparar búsquedas, actualización de stock y detalle_venta
+                    try (PreparedStatement psBusca = conex.prepareStatement(
+                                "SELECT cod_producto, stock_actual, unidad_medida " +
+                                "FROM Producto WHERE nombre_producto = ?");
+                         PreparedStatement psStock = conex.prepareStatement(
+                                "UPDATE Producto " +
+                                "SET stock_actual = stock_actual - ? " +
+                                "WHERE cod_producto = ? AND stock_actual >= ?");
+                         PreparedStatement psDet = conex.prepareStatement(
+                                "INSERT INTO detalle_venta " +
+                                "(id_venta, cod_producto, cantidad_venta, precio_unitario_venta) " +
+                                "VALUES (?, ?, ?, ?)")) {
+                        for (int i = 0; i < model.getRowCount(); i++) {
+                            String nombre = model.getValueAt(i, 0).toString();
+                            double cantidadTabla = Double.parseDouble(model.getValueAt(i, 1).toString());
+                            int precioUnit = Integer.parseInt(model.getValueAt(i, 2).toString());
+                            String cod;
+                            double stock;
+                            String unidadMedida;
+
+                            psBusca.setString(1, nombre);
+                            try (ResultSet rs = psBusca.executeQuery()) {
+                                if (!rs.next()) {
+                                    throw new SQLException("Producto no encontrado: " + nombre);
+                                }
+                                cod = rs.getString("cod_producto");
+                                stock = rs.getDouble("stock_actual");
+                                unidadMedida = rs.getString("unidad_medida");
+                            }
+                            boolean esKg = "Kilogramo".equalsIgnoreCase(unidadMedida);
+                            double cantidadReal = esKg ? cantidadTabla : Math.round(cantidadTabla);
+                            if (cantidadReal > stock + 1e-9) {
+                                throw new SQLException(
+                                    "Stock insuficiente para " + nombre +
+                                    ". Disponible: " + stock
+                                );
+                            }
+                            psStock.setDouble(1, cantidadReal);
+                            psStock.setString(2, cod);
+                            psStock.setDouble(3, cantidadReal);
+                            int ok = psStock.executeUpdate();
+                            if (ok == 0) {
+                                throw new SQLException(
+                                    "Stock insuficiente para " + nombre +
+                                    " al confirmar la venta. Stock actual: " + stock
+                                );
+                            }
+                            psDet.setInt(1, idVenta);
+                            psDet.setString(2, cod);
+                            psDet.setDouble(3, cantidadReal);
+                            psDet.setInt(4, precioUnit);
+                            psDet.addBatch();
+                        }
+                        psDet.executeBatch();
+                    }
+                    conex.commit();
+
+                    // Generar el Ticket con el resumen de pago
+                    generarTicketVenta(totalRedondeado, datosPagoTicket);
+
+                    // Limpiar carrito
+                    model.setRowCount(0);
+                    txtProducto.setText("");
+                    txtCantidad.setText("");
+                    txtTotal.setText("");
+                } catch (SQLException e) {
+                    try {
+                        conex.rollback();
+                    } catch (SQLException ignore) {}
+                    JOptionPane.showMessageDialog(this, "No se pudo registrar la venta: " + e.getMessage());
+                } finally {
+                    try {
+                        conex.setAutoCommit(true);
+                    } catch (SQLException ignore) {}
+                }
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "Error de conexión al registrar la venta: " + e.getMessage());
+            }
         }
-    }
+
+        // Generación de Comprobante / Ticket de Venta con Detalle de Pasarela de Pago
+        private void generarTicketVenta(long totalPagado, String detallePago) {
+            DefaultTableModel model = (DefaultTableModel) tblVenta.getModel();
+
+            StringBuilder ticket = new StringBuilder();
+            ticket.append("========================================\n");
+            ticket.append("         VERDULERÍA GLAGERMAN         \n");
+            ticket.append("========================================\n");
+
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+            ticket.append("Fecha: ").append(sdf.format(new Date())).append("\n");
+            ticket.append("Cajero: Administrador\n");
+            ticket.append("----------------------------------------\n");
+            ticket.append(String.format("%-15s %-10s %-10s\n", "Producto", "Cant.", "Subtotal"));
+            ticket.append("----------------------------------------\n");
+
+            for (int i = 0; i < model.getRowCount(); i++) {
+                String prod = model.getValueAt(i, 0).toString();
+                String cant = model.getValueAt(i, 1).toString();
+                String sub = "S/" + model.getValueAt(i, 3).toString();
+
+                if (prod.length() > 14) prod = prod.substring(0, 14);
+                ticket.append(String.format("%-15s %-10s %-10s\n", prod, cant, sub));
+            }
+
+            ticket.append("----------------------------------------\n");
+            ticket.append(String.format("%-26s S/ %d\n", "TOTAL A PAGAR:", totalPagado));
+            ticket.append("----------------------------------------\n");
+            ticket.append("DETALLE DE PAGO:\n");
+            ticket.append(detallePago);
+            ticket.append("========================================\n");
+            ticket.append("   ¡Gracias por su compra en Glagerman!  \n");
+            ticket.append("========================================\n");
+
+            int opc = JOptionPane.showConfirmDialog(this,
+                    "Venta y pago registrados con éxito.\n" + detallePago + "\n¿Desea guardar el ticket de compra?",
+                    "Venta Exitosa", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
+
+            if (opc == JOptionPane.YES_OPTION) {
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setDialogTitle("Guardar Ticket de Venta");
+
+                SimpleDateFormat sdfFile = new SimpleDateFormat("yyyyMMdd_HHmmss");
+                fileChooser.setSelectedFile(new File("Ticket_Venta_" + sdfFile.format(new Date()) + ".txt"));
+
+                int seleccion = fileChooser.showSaveDialog(this);
+                if (seleccion == JFileChooser.APPROVE_OPTION) {
+                    File archivoDestino = fileChooser.getSelectedFile();
+                    if (!archivoDestino.getName().toLowerCase().endsWith(".txt")) {
+                        archivoDestino = new File(archivoDestino.getAbsolutePath() + ".txt");
+                    }
+
+                    try (FileWriter fw = new FileWriter(archivoDestino)) {
+                        fw.write(ticket.toString());
+                        JOptionPane.showMessageDialog(this, "Ticket guardado en:\n" + archivoDestino.getAbsolutePath());
+                    } catch (IOException ex) {
+                        JOptionPane.showMessageDialog(this, "Error al guardar el ticket: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }
+        }
     
     private void limpiarTabla(){
         DefaultTableModel m = (DefaultTableModel) tblVenta.getModel();
