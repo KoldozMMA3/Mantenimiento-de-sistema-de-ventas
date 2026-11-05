@@ -1,55 +1,33 @@
-// prueba de commit
 package views;
-import views.administrar_inventario.AdminInvPage;
 
+import views.administrar_inventario.AdminInvPage;
 import java.sql.Connection;
 import java.sql.SQLException;
 import javax.swing.JOptionPane;
+import posglagerman.Sesion;
+
 public class InicioPage extends javax.swing.JFrame {
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(InicioPage.class.getName());
+    
+    // Variables globales para la barra superior (fuera del bloque gris)
+    private java.awt.CardLayout cardLayout;
+    private javax.swing.JPanel panelContenedor;
+    private javax.swing.JButton btnTopInicio, btnTopVentas, btnTopCompras, btnTopProveedores, btnTopInventario, btnTopReportes, btnSalirMaestro;
 
-    /**
-     * Creates new form Inicio
-     */
-public InicioPage() {
+    public InicioPage() {
         initComponents();
         setTitle("Verdulería Glagerman - Sistema de Gestión");
         setSize(1000, 700);
         setLocationRelativeTo(null);
         setResizable(true);
+        
+        // Inicializar tabla de usuarios
+        Sesion.inicializarBD();
 
-        // 1. Panel de Bienvenida (Inicio)
-        panInicio.setLayout(new java.awt.GridBagLayout());
-        javax.swing.JPanel panelBienvenida = new javax.swing.JPanel();
-        panelBienvenida.setBackground(new java.awt.Color(250, 250, 250));
-        panelBienvenida.setLayout(new javax.swing.BoxLayout(panelBienvenida, javax.swing.BoxLayout.Y_AXIS));
-
-        javax.swing.JLabel lblTitulo = new javax.swing.JLabel("Sistema de Gestión - Verdulería Glagerman");
-        lblTitulo.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 26));
-        lblTitulo.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
-
-        javax.swing.JLabel lblSubtitulo = new javax.swing.JLabel("Panel de Control Principal");
-        lblSubtitulo.setFont(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 18));
-        lblSubtitulo.setForeground(new java.awt.Color(100, 100, 100));
-        lblSubtitulo.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
-
-        javax.swing.JLabel lblDesc = new javax.swing.JLabel("<html><div style='text-align: center; width: 500px; margin-top: 20px; font-size: 14px; color: #555;'>Utiliza la barra de menú superior para navegar de forma rápida entre los módulos. El sistema se adaptará automáticamente al tamaño de tu pantalla.</div></html>");
-        lblDesc.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
-
-        panelBienvenida.add(lblTitulo);
-        panelBienvenida.add(javax.swing.Box.createVerticalStrut(10));
-        panelBienvenida.add(lblSubtitulo);
-        panelBienvenida.add(javax.swing.Box.createVerticalStrut(20));
-        panelBienvenida.add(lblDesc);
-
-        panInicio.removeAll();
-        panInicio.add(panelBienvenida, new java.awt.GridBagConstraints());
-
-        // 2. Contenedor Dinámico Central
-        java.awt.CardLayout cardLayout = new java.awt.CardLayout();
-        javax.swing.JPanel panelContenedor = new javax.swing.JPanel(cardLayout);
-
+        // 1. Configurar el contenedor Dinámico Central
+        cardLayout = new java.awt.CardLayout();
+        panelContenedor = new javax.swing.JPanel(cardLayout);
         panelContenedor.add(panInicio, "INICIO");
         panelContenedor.add(envolverPanelAdaptativo(new VentasPage().getContentPane()), "VENTAS");
         panelContenedor.add(envolverPanelAdaptativo(new CompraAProveedoresPage().getContentPane()), "COMPRAS");
@@ -57,7 +35,7 @@ public InicioPage() {
         panelContenedor.add(envolverPanelAdaptativo(new views.administrar_inventario.AdminInvPage().getContentPane()), "INVENTARIO");
         panelContenedor.add(envolverPanelAdaptativo(new ReportesPage().getContentPane()), "REPORTES");
 
-        // 3. Barra Superior (Navegación + Reloj + Salir)
+        // 2. Barra Superior (Navegación + Reloj + Salir)
         javax.swing.JPanel topBar = new javax.swing.JPanel(new java.awt.BorderLayout());
         topBar.setBackground(new java.awt.Color(230, 235, 240));
 
@@ -65,22 +43,22 @@ public InicioPage() {
         javax.swing.JPanel leftMenu = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 10, 10));
         leftMenu.setOpaque(false);
 
-        javax.swing.JButton btnInicio = crearBotonMenu("🏠 Inicio");
-        javax.swing.JButton btnVentas = crearBotonMenu("🛒 Ventas");
-        javax.swing.JButton btnCompras = crearBotonMenu("📦 Compras");
-        javax.swing.JButton btnProveedores = crearBotonMenu("🤝 Proveedores");
-        javax.swing.JButton btnInventario = crearBotonMenu("📋 Inventario");
-        javax.swing.JButton btnReportes = crearBotonMenu("📊 Reportes");
+        btnTopInicio = crearBotonMenu("  Inicio");
+        btnTopVentas = crearBotonMenu("  Ventas");
+        btnTopCompras = crearBotonMenu("  Compras");
+        btnTopProveedores = crearBotonMenu("  Proveedores");
+        btnTopInventario = crearBotonMenu("  Inventario");
+        btnTopReportes = crearBotonMenu("  Reportes");
 
-        btnInicio.addActionListener(e -> cardLayout.show(panelContenedor, "INICIO"));
-        btnVentas.addActionListener(e -> cardLayout.show(panelContenedor, "VENTAS"));
-        btnCompras.addActionListener(e -> cardLayout.show(panelContenedor, "COMPRAS"));
-        btnProveedores.addActionListener(e -> cardLayout.show(panelContenedor, "PROVEEDORES"));
-        btnInventario.addActionListener(e -> cardLayout.show(panelContenedor, "INVENTARIO"));
-        btnReportes.addActionListener(e -> cardLayout.show(panelContenedor, "REPORTES"));
+        btnTopInicio.addActionListener(e -> cardLayout.show(panelContenedor, "INICIO"));
+        btnTopVentas.addActionListener(e -> cardLayout.show(panelContenedor, "VENTAS"));
+        btnTopCompras.addActionListener(e -> cardLayout.show(panelContenedor, "COMPRAS"));
+        btnTopProveedores.addActionListener(e -> cardLayout.show(panelContenedor, "PROVEEDORES"));
+        btnTopInventario.addActionListener(e -> cardLayout.show(panelContenedor, "INVENTARIO"));
+        btnTopReportes.addActionListener(e -> cardLayout.show(panelContenedor, "REPORTES"));
 
-        leftMenu.add(btnInicio); leftMenu.add(btnVentas); leftMenu.add(btnCompras);
-        leftMenu.add(btnProveedores); leftMenu.add(btnInventario); leftMenu.add(btnReportes);
+        leftMenu.add(btnTopInicio); leftMenu.add(btnTopVentas); leftMenu.add(btnTopCompras);
+        leftMenu.add(btnTopProveedores); leftMenu.add(btnTopInventario); leftMenu.add(btnTopReportes);
 
         // Menú Derecho (Reloj Dinámico y Botón Salir)
         javax.swing.JPanel rightMenu = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 15, 10));
@@ -89,16 +67,23 @@ public InicioPage() {
         javax.swing.JLabel lblReloj = new javax.swing.JLabel();
         lblReloj.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 14));
         lblReloj.setForeground(new java.awt.Color(80, 80, 80));
-        // Reloj en tiempo real
         new javax.swing.Timer(1000, e -> lblReloj.setText(new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new java.util.Date()))).start();
-        lblReloj.setText(new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new java.util.Date())); // Mostrar al instante
+        lblReloj.setText(new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new java.util.Date())); 
 
-        javax.swing.JButton btnSalirMaestro = new javax.swing.JButton("❌ Salir del Sistema");
+        btnSalirMaestro = new javax.swing.JButton("  Salir del Sistema");
         btnSalirMaestro.setBackground(new java.awt.Color(244, 168, 168));
         btnSalirMaestro.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 13));
         btnSalirMaestro.setFocusPainted(false);
         btnSalirMaestro.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnSalirMaestro.addActionListener(e -> System.exit(0));
+        
+        btnSalirMaestro.addActionListener(e -> {
+            if (Sesion.haySesionActiva()) {
+                Sesion.cerrarSesion();
+                renderizarLogin();
+            } else {
+                System.exit(0);
+            }
+        });
 
         rightMenu.add(lblReloj);
         rightMenu.add(btnSalirMaestro);
@@ -106,14 +91,133 @@ public InicioPage() {
         topBar.add(leftMenu, java.awt.BorderLayout.WEST);
         topBar.add(rightMenu, java.awt.BorderLayout.EAST);
 
-        // 4. Ensamblar Ventana
+        // 3. Ensamblar Ventana
         this.getContentPane().setLayout(new java.awt.BorderLayout());
         this.getContentPane().add(topBar, java.awt.BorderLayout.NORTH);
         this.getContentPane().add(panelContenedor, java.awt.BorderLayout.CENTER);
+
+        // 4. Renderizar la pantalla de Login inicialmente
+        renderizarLogin();
+    }
+
+    // --- MÉTODOS DE LOGIN Y BIENVENIDA ---
+    
+    private void renderizarLogin() {
+        panInicio.removeAll();
+        panInicio.setLayout(new java.awt.GridBagLayout());
+        
+        javax.swing.JPanel panelLogin = new javax.swing.JPanel();
+        panelLogin.setBackground(new java.awt.Color(250, 250, 250));
+        panelLogin.setLayout(new javax.swing.BoxLayout(panelLogin, javax.swing.BoxLayout.Y_AXIS));
+        panelLogin.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200)),
+                javax.swing.BorderFactory.createEmptyBorder(25, 40, 25, 40)));
+
+        javax.swing.JLabel lblIcon = new javax.swing.JLabel("🔐 INICIO DE SESIÓN");
+        lblIcon.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 22));
+        lblIcon.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+
+        javax.swing.JTextField txtUser = new javax.swing.JTextField();
+        txtUser.setMaximumSize(new java.awt.Dimension(250, 35));
+        txtUser.setFont(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 14));
+        
+        javax.swing.JPasswordField txtPass = new javax.swing.JPasswordField();
+        txtPass.setMaximumSize(new java.awt.Dimension(250, 35));
+        txtPass.setFont(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 14));
+
+        javax.swing.JButton btnEntrar = new javax.swing.JButton("Ingresar");
+        btnEntrar.setBackground(new java.awt.Color(168, 197, 227));
+        btnEntrar.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 14));
+        btnEntrar.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+        btnEntrar.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+
+        panelLogin.add(lblIcon);
+        panelLogin.add(javax.swing.Box.createVerticalStrut(20));
+        panelLogin.add(new javax.swing.JLabel("Usuario:"));
+        panelLogin.add(txtUser);
+        panelLogin.add(javax.swing.Box.createVerticalStrut(15));
+        panelLogin.add(new javax.swing.JLabel("Contraseña:"));
+        panelLogin.add(txtPass);
+        panelLogin.add(javax.swing.Box.createVerticalStrut(25));
+        panelLogin.add(btnEntrar);
+
+        panInicio.add(panelLogin, new java.awt.GridBagConstraints());
+        panInicio.revalidate();
+        panInicio.repaint();
+
+        // Estado: Bloqueado
+        bloquearMenu(true);
+        btnSalirMaestro.setText("  Salir del Sistema");
+        cardLayout.show(panelContenedor, "INICIO");
+
+        // Acción de Ingreso
+        java.awt.event.ActionListener accionLogin = e -> {
+            String u = txtUser.getText().trim();
+            String p = new String(txtPass.getPassword());
+            if (Sesion.login(u, p)) {
+                renderizarBienvenida();
+            } else {
+                JOptionPane.showMessageDialog(this, "Credenciales incorrectas.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        };
+        btnEntrar.addActionListener(accionLogin);
+        txtPass.addActionListener(accionLogin); // Permite dar Enter en el password
+    }
+
+    private void renderizarBienvenida() {
+        panInicio.removeAll();
+        panInicio.setLayout(new java.awt.GridBagLayout());
+        
+        javax.swing.JPanel panelBienvenida = new javax.swing.JPanel();
+        panelBienvenida.setBackground(new java.awt.Color(250, 250, 250));
+        panelBienvenida.setLayout(new javax.swing.BoxLayout(panelBienvenida, javax.swing.BoxLayout.Y_AXIS));
+
+        javax.swing.JLabel lblTitulo = new javax.swing.JLabel("Sistema de Gestión - Verdulería Glagerman");
+        lblTitulo.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 26));
+        lblTitulo.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+
+        javax.swing.JLabel lblSubtitulo = new javax.swing.JLabel("Panel de Control Principal - " + Sesion.rol);
+        lblSubtitulo.setFont(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 18));
+        lblSubtitulo.setForeground(new java.awt.Color(100, 100, 100));
+        lblSubtitulo.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+        
+        javax.swing.JLabel lblUser = new javax.swing.JLabel("Bienvenido(a): " + Sesion.username.toUpperCase());
+        lblUser.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 16));
+        lblUser.setForeground(new java.awt.Color(34, 139, 34));
+        lblUser.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+
+        javax.swing.JLabel lblDesc = new javax.swing.JLabel("<html><div style='text-align: center; width: 500px; margin-top: 20px; font-size: 14px; color: #555;'>Utiliza la barra de menú superior para navegar de forma rápida entre los módulos. El sistema se adaptará automáticamente al tamaño de tu pantalla.</div></html>");
+        lblDesc.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+
+        panelBienvenida.add(lblTitulo);
+        panelBienvenida.add(javax.swing.Box.createVerticalStrut(10));
+        panelBienvenida.add(lblSubtitulo);
+        panelBienvenida.add(javax.swing.Box.createVerticalStrut(10));
+        panelBienvenida.add(lblUser);
+        panelBienvenida.add(javax.swing.Box.createVerticalStrut(20));
+        panelBienvenida.add(lblDesc);
+
+        panInicio.add(panelBienvenida, new java.awt.GridBagConstraints());
+        panInicio.revalidate();
+        panInicio.repaint();
+
+        // Estado: Desbloqueado
+        bloquearMenu(false);
+        btnSalirMaestro.setText("  Cerrar Sesión");
+    }
+
+    private void bloquearMenu(boolean bloqueado) {
+        java.awt.Color colorPlomo = new java.awt.Color(211, 211, 211);
+        java.awt.Color colorCeleste = new java.awt.Color(168, 197, 227);
+
+        javax.swing.JButton[] btns = {btnTopVentas, btnTopCompras, btnTopProveedores, btnTopInventario, btnTopReportes};
+        for (javax.swing.JButton b : btns) {
+            b.setEnabled(!bloqueado);
+            b.setBackground(bloqueado ? colorPlomo : colorCeleste);
+        }
     }
 
     // --- MÉTODOS AUXILIARES INTELIGENTES ---
-
     private javax.swing.JButton crearBotonMenu(String texto) {
         javax.swing.JButton boton = new javax.swing.JButton(texto);
         boton.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 13));
@@ -123,7 +227,6 @@ public InicioPage() {
         return boton;
     }
 
-    // Adaptador mágico MEJORADO (Ahora entra en cualquier capa de NetBeans)
     private javax.swing.JPanel envolverPanelAdaptativo(java.awt.Container contenidoOriginal) {
         if (contenidoOriginal instanceof javax.swing.JFrame) {
             contenidoOriginal = ((javax.swing.JFrame) contenidoOriginal).getContentPane();
@@ -132,9 +235,7 @@ public InicioPage() {
         ocultarBotonesNavegacion(contenidoOriginal);
         mejorarTablasUniversales(contenidoOriginal);
 
-        // Buscar la tabla profundamente en el formulario
         java.awt.Component expansible = encontrarExpansible(contenidoOriginal);
-
         if (expansible != null && expansible.getParent() instanceof javax.swing.JPanel) {
             javax.swing.JPanel panelBase = (javax.swing.JPanel) expansible.getParent();
             panelBase.setSize(panelBase.getPreferredSize());
@@ -178,13 +279,11 @@ public InicioPage() {
             
             return nuevoContenedor;
         }
-
         javax.swing.JPanel fallback = new javax.swing.JPanel(new java.awt.BorderLayout());
         fallback.add(contenidoOriginal, java.awt.BorderLayout.CENTER);
         return fallback;
     }
 
-    // Buscador recursivo para atrapar la tabla esté donde esté
     private java.awt.Component encontrarExpansible(java.awt.Container contenedor) {
         for (java.awt.Component c : contenedor.getComponents()) {
             if (c instanceof javax.swing.JScrollPane || c instanceof javax.swing.JTabbedPane) {
