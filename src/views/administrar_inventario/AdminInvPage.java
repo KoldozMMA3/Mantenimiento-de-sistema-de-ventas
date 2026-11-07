@@ -25,43 +25,49 @@ public class AdminInvPage extends javax.swing.JFrame {
         setResizable(false);
         
         // --- INICIO REQ 04: Búsqueda Reactiva (Live Search) ---
-        // 1. Escuchar cada tecla que el usuario presiona y soltar
         txtBuscar.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyReleased(java.awt.event.KeyEvent evt) {
-                buscarProducto(); // Filtra la tabla al instante
+                buscarProducto(); 
             }
         });
-        
-        // 2. Ocultar el botón "Buscar" porque el sistema ahora es automático
         cmdBuscar.setVisible(false);
         // --- FIN REQ 04 ---
-
+        
         // --- INICIO REQ 03: Filtro de Bajo Stock ---
-        javax.swing.JCheckBox chkBajoStock = new javax.swing.JCheckBox("⚠️ Ver bajo stock");
+        javax.swing.JCheckBox chkBajoStock = new javax.swing.JCheckBox("  Ver bajo stock");
         chkBajoStock.setBackground(new java.awt.Color(250, 250, 250));
         chkBajoStock.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 14));
         chkBajoStock.setForeground(java.awt.Color.RED);
         chkBajoStock.setFocusPainted(false);
-        chkBajoStock.setBounds(10, 10, 200, 30); 
+        chkBajoStock.setBounds(10, 10, 200, 30);  
         
         chkBajoStock.addActionListener(e -> {
             modoBajoStock = chkBajoStock.isSelected();
-            buscarProducto(); // Reutilizamos buscarProducto para aplicar ambos filtros a la vez
+            buscarProducto(); 
         });
-        
-        this.getContentPane().add(chkBajoStock); 
+        this.getContentPane().add(chkBajoStock);
         // --- FIN REQ 03 ---
-
+        
         cargarProductos();
         Utils.StockRenderer renderer = new Utils.StockRenderer(4, 5); 
         tblCompra.setDefaultRenderer(Object.class, renderer);
         seleccionarProductoTabla();
-
-        // Desactivar botones "Editar" y "Eliminar" por defecto (Gris)
+        
+        // Desactivar botones de edición por defecto
         cmdEditar.setEnabled(false);
         cmdEditar.setBackground(new java.awt.Color(211, 211, 211)); 
         cmdEliminar.setEnabled(false);
         cmdEliminar.setBackground(new java.awt.Color(211, 211, 211));
+
+        // REQUERIMIENTO 24: Bloqueo de botones si el rol es VENDEDOR
+        if ("VENDEDOR".equalsIgnoreCase(posglagerman.Sesion.rol)) {
+            cmdAgregar.setEnabled(false);
+            cmdAgregar.setBackground(new java.awt.Color(211, 211, 211));
+            cmdCategorias.setEnabled(false);
+            cmdCategorias.setBackground(new java.awt.Color(211, 211, 211));
+            cmdHistorial.setEnabled(false);
+            cmdHistorial.setBackground(new java.awt.Color(211, 211, 211));
+        }
     }
 
     private void cargarProductos() {
@@ -111,11 +117,13 @@ public class AdminInvPage extends javax.swing.JFrame {
                 if (fila != -1) {
                     productoSeleccionado = tblCompra.getValueAt(fila, 0).toString();
                     
-                    // R01: Activar botones al seleccionar fila (Celeste)
-                    cmdEditar.setEnabled(true);
-                    cmdEditar.setBackground(new java.awt.Color(168, 197, 227)); 
-                    cmdEliminar.setEnabled(true);
-                    cmdEliminar.setBackground(new java.awt.Color(168, 197, 227));
+                    // R24: Activar botones al seleccionar fila (Celeste) SOLO SI ES ADMIN
+                    if (!"VENDEDOR".equalsIgnoreCase(posglagerman.Sesion.rol)) {
+                        cmdEditar.setEnabled(true);
+                        cmdEditar.setBackground(new java.awt.Color(168, 197, 227)); 
+                        cmdEliminar.setEnabled(true);
+                        cmdEliminar.setBackground(new java.awt.Color(168, 197, 227));
+                    }
                 }
             }
         });

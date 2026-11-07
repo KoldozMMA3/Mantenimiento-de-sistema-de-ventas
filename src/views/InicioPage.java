@@ -226,11 +226,27 @@ public class InicioPage extends javax.swing.JFrame {
         java.awt.Color colorPlomo = new java.awt.Color(211, 211, 211);
         java.awt.Color colorCeleste = new java.awt.Color(168, 197, 227);
 
-        javax.swing.JButton[] btns = {btnTopVentas, btnTopCompras, btnTopProveedores, btnTopInventario, btnTopReportes};
-        for (javax.swing.JButton b : btns) {
-            b.setEnabled(!bloqueado);
-            b.setBackground(bloqueado ? colorPlomo : colorCeleste);
-        }
+        // Saber si el que inició sesión es un vendedor
+        boolean esVendedor = "VENDEDOR".equalsIgnoreCase(Sesion.rol);
+        
+        // Ventas e Inventario siempre se habilitan si no está bloqueado
+        btnTopVentas.setEnabled(!bloqueado);
+        btnTopVentas.setBackground(bloqueado ? colorPlomo : colorCeleste);
+        
+        btnTopInventario.setEnabled(!bloqueado);
+        btnTopInventario.setBackground(bloqueado ? colorPlomo : colorCeleste);
+
+        // Compras, Proveedores y Reportes SE QUEDAN PLOMOS si es Vendedor
+        boolean restringir = bloqueado || esVendedor;
+        
+        btnTopCompras.setEnabled(!restringir);
+        btnTopCompras.setBackground(restringir ? colorPlomo : colorCeleste);
+        
+        btnTopProveedores.setEnabled(!restringir);
+        btnTopProveedores.setBackground(restringir ? colorPlomo : colorCeleste);
+        
+        btnTopReportes.setEnabled(!restringir);
+        btnTopReportes.setBackground(restringir ? colorPlomo : colorCeleste);
     }
 
     // --- MÉTODOS AUXILIARES INTELIGENTES ---
