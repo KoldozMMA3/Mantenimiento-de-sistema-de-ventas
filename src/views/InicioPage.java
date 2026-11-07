@@ -197,6 +197,22 @@ public class InicioPage extends javax.swing.JFrame {
         panelBienvenida.add(javax.swing.Box.createVerticalStrut(20));
         panelBienvenida.add(lblDesc);
 
+        // --- NUEVO BOTÓN ADMIN ---
+        if ("ADMIN".equalsIgnoreCase(Sesion.rol)) {
+            javax.swing.JButton btnUsuarios = new javax.swing.JButton("Gestión de Usuarios");
+            btnUsuarios.setBackground(new java.awt.Color(255, 193, 7)); // Color mostaza distintivo
+            btnUsuarios.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 14));
+            btnUsuarios.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+            btnUsuarios.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+            btnUsuarios.addActionListener(e -> {
+                GestionUsuariosDialog dialog = new GestionUsuariosDialog(this);
+                dialog.setVisible(true);
+            });
+            panelBienvenida.add(javax.swing.Box.createVerticalStrut(30));
+            panelBienvenida.add(btnUsuarios);
+        }
+        // --- FIN NUEVO BOTÓN ---
+
         panInicio.add(panelBienvenida, new java.awt.GridBagConstraints());
         panInicio.revalidate();
         panInicio.repaint();
