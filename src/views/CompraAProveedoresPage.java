@@ -218,14 +218,21 @@ public class CompraAProveedoresPage extends javax.swing.JFrame {
             }
         });
 
-        // --- INICIO REQ 05: Atajos de Teclado (Hotkeys) ---
-        // 1. Navegación fluida con ENTER
-        txtProductoProveedor.addActionListener(e -> txtCantProveedor.requestFocus());
+        // --- INICIO REQ R26: Integración con Lector en Compras ---
+        txtProductoProveedor.addActionListener(e -> {
+            if (!txtProductoProveedor.getText().trim().isEmpty()) {
+                txtCantProveedor.setText("1"); // El lector asume 1 unidad ingresada
+                txtPrecioCompra.requestFocus(); // Salta directamente a pedir el precio de costo
+            }
+        });
+        
         txtCantProveedor.addActionListener(e -> txtPrecioCompra.requestFocus());
+        
         txtPrecioCompra.addActionListener(e -> {
             cmdAgregarProductoCompra.doClick();
-            txtProductoProveedor.requestFocus();
+            txtProductoProveedor.requestFocus(); // Foco listo para pistolear el siguiente producto
         });
+        // --- FIN REQ R26 ---
 
         // 2. Atajos Globales
         javax.swing.InputMap inputMap = jPanel1.getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW);

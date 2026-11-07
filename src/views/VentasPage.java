@@ -33,14 +33,22 @@ public VentasPage() {
             }
         });
 
-        // --- INICIO REQ 05: Atajos de Teclado (Solución Definitiva) ---
-        
-        // 1. Navegación fluida con ENTER (Bucle de caja)
-        txtProducto.addActionListener(e -> txtCantidad.requestFocus());
+        // --- INICIO REQ R26: Integración con Pistola de Códigos de Barras (Ventas) ---
+        // Al pistolear, el lector presiona 'Enter' (Action). Asumimos cantidad 1 por defecto.
+        txtProducto.addActionListener(e -> {
+            if (!txtProducto.getText().trim().isEmpty()) {
+                txtCantidad.setText("1"); // Escaneo rápido asume 1 unidad (o 1 kg)
+                cmdAgregarProducto.doClick(); // Agrega al carrito al instante
+                txtProducto.requestFocus();   // Devuelve el foco para el siguiente "beep"
+            }
+        });
+
+        // Por si el cajero quiere agregar cantidades manualmente (ej. 5 kg)
         txtCantidad.addActionListener(e -> {
             cmdAgregarProducto.doClick(); 
             txtProducto.requestFocus();   
         });
+        // --- FIN REQ R26 ---
 
         // 2. EL INTERCEPTOR MÁGICO GLOBAL
         // Captura las teclas antes de que la tabla o los textos las bloqueen
@@ -74,7 +82,7 @@ public VentasPage() {
                 return false;
             }
         });
-        // --- FIN REQ 05 ---
+        
     }
 
     private void agregarProducto(){
