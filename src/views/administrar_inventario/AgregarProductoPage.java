@@ -192,8 +192,15 @@ public class AgregarProductoPage extends javax.swing.JFrame {
                         ps.executeUpdate();
                     }
                     conex.commit();
-                    JOptionPane.showMessageDialog(this, "Se agregó el producto.");
-
+                    // R21: Ofrecer generar el código de barras instantáneamente
+                    int resp = JOptionPane.showConfirmDialog(this, 
+                            "El producto se agregó a la base de datos con éxito.\n" +
+                            "¿Desea generar e imprimir el código de barras para " + nombreProducto + " ahora mismo?", 
+                            "Generar Etiqueta", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
+                    
+                    if (resp == JOptionPane.YES_OPTION) {
+                        Utils.CodigoBarrasUtil.generarYMostrar(this, codProducto, nombreProducto, String.valueOf(precioVenta));
+                    }
                     // CORRECCIÓN 1: Simplemente cerramos la ventana emergente al terminar con éxito
                     this.dispose();
 
